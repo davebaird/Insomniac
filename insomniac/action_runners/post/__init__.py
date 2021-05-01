@@ -1,0 +1,97 @@
+from insomniac.action_runners import *
+
+from insomniac.safely_runner import run_safely
+from insomniac.utils import *
+from pathlib import Path
+
+
+class PostActionRunner(CoreActionsRunner):
+    ACTION_ID = "post"
+    ACTION_ARGS = {
+        "post": {
+            "help": 'path to image to use for the post'
+        },
+        "caption": {
+            'help': 'Caption for the post',
+            'default': None
+        },
+        "location": {
+            "help": 'location to tag the post',
+            "default": None
+        },
+        "people": {
+            "nargs": '+',
+            "help": 'accounts to tag in the post (with or without @)',
+            "default": None
+        }
+    }
+
+    caption = ''
+    location = ''
+    people = []
+    image_path_on_host = ''
+
+    def is_action_selected(self, args):
+        if args.post is not None and len(args.post) > 0:
+            if Path(args.post).is_file():
+                return True
+            else:
+                raise FileNotFoundError(
+                    "POSTING: file '" + args.post + "' not found on host")
+        else:
+            print("POSTING: no host file specified")
+            return False
+
+    def reset_params(self):
+        self.caption = ''
+        self.location = ''
+        self.people = []
+        self.image_path = ''
+
+    def set_params(self, args):
+        self.reset_params()
+
+        self.image_path_on_host = args.post
+
+        if args.caption is not None:
+            self.caption = args.caption
+
+        if args.location is not None:
+            self.location = args.location
+
+        if args.people is not None:
+            self.people = args.people
+
+    def run(self, device_wrapper, storage, session_state, on_action, is_limit_reached, is_passed_filters=None):
+        from insomniac.action_runners.post.action_post import post, send_image_to_device, clear_image_from_device
+
+        image_path_on_device = send_image_to_device(
+            device_wrapper.device, self.image_path_on_host)
+
+        self.action_status = ActionStatus(ActionState.PRE_RUN)
+
+        @run_safely(device_wrapper=device_wrapper)
+        def job():
+            self.action_status.set(ActionState.RUNNING)
+            success = post(device=device_wrapper.get(),
+                           on_action=on_action,
+                           storage=storage,
+                           session_state=session_state,
+                           action_status=self.action_status,
+                           is_limit_reached=is_limit_reached,
+                           caption=self.caption,
+                           people=self.people,
+                           location=self.location,
+                           image_path_on_device=image_path_on_device)
+
+            if success is not None:
+                print(COLOR_REPORT + "Posted image to " + session_state.my_username + COLOR_ENDC)
+            else:
+                print(COLOR_REPORT + "Did not post image" + COLOR_ENDC)
+
+            self.action_status.set(ActionState.DONE)
+            clear_image_from_device(
+                device_wrapper.device, image_path_on_device)
+
+        while not self.action_status.get() == ActionState.DONE:
+            job()
