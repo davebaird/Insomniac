@@ -23,6 +23,11 @@ class PostActionRunner(CoreActionsRunner):
             "nargs": '+',
             "help": 'accounts to tag in the post (with or without @)',
             "default": None
+        },
+        "dump_ui": {
+            "help": 'dump ui files to working dir on fail or on completion',
+            "action": 'store_true',
+            'default': None
         }
     }
 
@@ -30,6 +35,7 @@ class PostActionRunner(CoreActionsRunner):
     location = ''
     people = []
     image_path_on_host = ''
+    dump_ui = False
 
     def is_action_selected(self, args):
         if args.post is not None and len(args.post) > 0:
@@ -47,6 +53,7 @@ class PostActionRunner(CoreActionsRunner):
         self.location = ''
         self.people = []
         self.image_path = ''
+        self.dump_ui = False
 
     def set_params(self, args):
         self.reset_params()
@@ -61,6 +68,9 @@ class PostActionRunner(CoreActionsRunner):
 
         if args.people is not None:
             self.people = args.people
+
+        if args.dump_ui is not None:
+            self.dump_ui = True
 
     def run(self, device_wrapper, storage, session_state, on_action, is_limit_reached, is_passed_filters=None):
         from insomniac.action_runners.post.action_post import post, send_image_to_device, clear_image_from_device
@@ -82,6 +92,7 @@ class PostActionRunner(CoreActionsRunner):
                            caption=self.caption,
                            people=self.people,
                            location=self.location,
+                           dump_ui=self.dump_ui,
                            image_path_on_device=image_path_on_device)
 
             if success is not None:

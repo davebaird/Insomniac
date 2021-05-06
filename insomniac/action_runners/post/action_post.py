@@ -14,9 +14,9 @@ from datetime import datetime
 def _printfail(msg):
     print(COLOR_FAIL + msg + COLOR_ENDC)
 
-# to debug something triggering this call, replace the _fail() call with _printfail() and add a _dump_ui() after
-def _fail(msg):
+def _fail(device, dump_ui, msg):
     _printfail(msg)
+    if dump_ui is True: _dump_ui(device)
     return
 
 def _printok(msg):
@@ -79,9 +79,7 @@ def _middlish(bounds):
     y = randrange(min_y, max_y)
     return x, y
 
-
-
-def post(device, on_action, storage, session_state, action_status, is_limit_reached, caption, people, location, image_path_on_device):
+def post(device, on_action, storage, session_state, action_status, is_limit_reached, caption, people, location, dump_ui, image_path_on_device):
     _printok("Starting a new post")
 
     # if not open_new_post(device=device, username=None, on_action=on_action):
@@ -89,14 +87,14 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
     # sleeper.random_sleep()
     home_view = TabBarView(device).navigate_to_home()
     if home_view is None:
-        return _fail("Cannot find home_view")
+        return _fail(device, dump_ui, "Cannot find home_view")
 
     print("Got home_view, ready to post")
 
     start_new_post_button = _find(
         device, 'com.instagram.android', 'android.widget.ImageView', 'action_bar_left_button')
     if not start_new_post_button.exists():
-        return _fail("Cannot find start_new_post_button. Quitting.")
+        return _fail(device, dump_ui, "Cannot find start_new_post_button. Quitting.")
 
     print("Press \"New Post (+)\" button")
     start_new_post_button.click()
@@ -104,7 +102,7 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
     gallery_popup_button = _find(
         device, 'com.instagram.android', 'android.widget.Spinner', 'gallery_folder_menu_alt')
     if not gallery_popup_button.exists():
-        return _fail("Cannot find gallery_popup_button. Quitting.")
+        return _fail(device, dump_ui, "Cannot find gallery_popup_button. Quitting.")
 
     print("Press \"Gallery\" dropdown button")
     gallery_popup_button.click()
@@ -113,7 +111,7 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
     button_other = _find(device, 'com.instagram.android',
                             'androidx.recyclerview.widget.RecyclerView', 'recycler_view').child(index=3)
     if not button_other.exists():
-        return _fail("Cannot find button_other. Quitting.")
+        return _fail(device, dump_ui, "Cannot find button_other. Quitting.")
 
     print("Select \"Other...\" option")
     button_other.click()
@@ -122,7 +120,7 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
     image = _find(device, 'com.android.documentsui',
                     'android.widget.FrameLayout', 'thumbnail').child(index=0)
     if not image.exists():
-        return _fail("Cannot find image. Quitting.")
+        return _fail(device, dump_ui, "Cannot find image. Quitting.")
 
     print("Click the image")
     image.click()
@@ -132,7 +130,7 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
     blue_arrow = _find(device, 'com.instagram.android',
                         'android.widget.ImageView', 'save')
     if not blue_arrow.exists():
-        return _fail("Cannot find blue_arrow. Quitting.")
+        return _fail(device, dump_ui, "Cannot find blue_arrow. Quitting.")
 
     print("Click blue arrow to skip cropping")
     blue_arrow.click()
@@ -143,7 +141,7 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
     blue_arrow2 = _find(device, 'com.instagram.android',
                         'android.widget.ImageView', 'next_button_imageview')
     if not blue_arrow2.exists():
-        return _fail("Cannot find blue_arrow2. Quitting.")
+        return _fail(device, dump_ui, "Cannot find blue_arrow2. Quitting.")
 
     print("Click blue arrow to skip filters")
     blue_arrow2.click()
@@ -158,7 +156,7 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
         caption_editbox = _find(
             device, 'com.instagram.android', 'android.widget.EditText', 'caption_text_view')
         if not caption_editbox.exists():
-            return _fail("Cannot find caption_editbox. Quitting.")
+            return _fail(device, dump_ui, "Cannot find caption_editbox. Quitting.")
 
         print("Typing in the caption")
         caption_editbox.click()
@@ -176,7 +174,7 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
         tag_people_button = device.find(
             className='android.widget.TextView', text='Tag People')
         if not tag_people_button.exists():
-            return _fail("Cannot find tag_people_button. Quitting.")
+            return _fail(device, dump_ui, "Cannot find tag_people_button. Quitting.")
 
         # clicking this button opens the image
         print("Click \"Tag People\" button")
@@ -189,7 +187,7 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
         taggable_image = _find(
             device, 'com.instagram.android', 'android.widget.ImageView', 'tag_image_view')
         if not taggable_image.exists():
-            return _fail("Cannot find taggable_image. Quitting.")
+            return _fail(device, dump_ui, "Cannot find taggable_image. Quitting.")
 
         bounds = taggable_image.get_bounds()
         x, y = _middlish(bounds)
@@ -198,7 +196,7 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
         user_searchbox = _find(
             device, 'com.instagram.android', 'android.widget.EditText', 'row_search_edit_text')
         if not user_searchbox.exists():
-            return _fail("Cannot find user_searchbox. Quitting.")
+            return _fail(device, dump_ui, "Cannot find user_searchbox. Quitting.")
 
         # # let's just go ahead and type
         print("Type username '" + people[0] + "' into user_searchbox")
@@ -210,7 +208,7 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
         selected_user_button = device.find(
             resourceId='com.instagram.android:id/row_search_user_username', className='android.widget.TextView', text=people[0])
         if not selected_user_button.exists():
-            return _fail("Cannot find selected_user_button. Quitting.")
+            return _fail(device, dump_ui, "Cannot find selected_user_button. Quitting.")
 
         selected_user_button.click()
 
@@ -219,7 +217,7 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
         blue_arrow3 = _find(device, 'com.instagram.android',
                             'android.widget.ViewSwitcher', 'action_bar_button_done')
         if not blue_arrow3.exists():
-            return _fail("Cannot find blue_arrow3. Quitting.")
+            return _fail(device, dump_ui, "Cannot find blue_arrow3. Quitting.")
 
         blue_arrow3.click()
 
@@ -238,7 +236,7 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
         add_location_button = _find(
             device, 'com.instagram.android', 'android.widget.TextView', 'location_label')
         if not add_location_button.exists():
-            return _fail("Cannot find add_location_button. Quitting.")
+            return _fail(device, dump_ui, "Cannot find add_location_button. Quitting.")
 
         add_location_button.click()
 
@@ -246,7 +244,7 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
         location_sbox = _find(device, 'com.instagram.android',
                                 'android.widget.EditText', 'row_search_edit_text')
         if not location_sbox.exists():
-            return _fail("Cannot find location_sbox. Quitting.")
+            return _fail(device, dump_ui, "Cannot find location_sbox. Quitting.")
 
         location_sbox.set_text(location)
 
@@ -256,7 +254,7 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
         selected_loc = device.find(resourceId='com.instagram.android:id/row_venue_title',
                                     className='android.widget.TextView', text=location)
         if not selected_loc.exists():
-            return _fail("Cannot find selected_loc. Quitting.")
+            return _fail(device, dump_ui, "Cannot find selected_loc. Quitting.")
 
         print("Click the selected location button")
         selected_loc.click()
@@ -267,7 +265,7 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
                         'android.widget.ImageView', 'next_button_imageview')
     # blue_tick = _find(device, 'com.instagram.android', 'android.widget.ViewSwitcher', 'action_bar').child(index=0).child(index=2)
     if not blue_tick.exists():
-        return _fail("Cannot find blue_tick. Quitting.")
+        return _fail(device, dump_ui, "Cannot find blue_tick. Quitting.")
 
     blue_tick.click()
     _printok("Post sent - waiting for result")
@@ -293,12 +291,12 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
     # Rejection mode 2: IG pops up a big full-screen warning.
     if posted_caption.exists():
         _printok("SUCCESS!")
-        _dump_ui(device, f'{prefix_with_ts}-final-success', logdir)
+        if dump_ui is True: _dump_ui(device, f'{prefix_with_ts}-final-success', logdir)
         return True
     else:
         _printfail(
             "FAILED: can't find expected post - check for possible SOFTBAN")
-        _dump_ui(device, f'{prefix_with_ts}-final-fail', logdir)
+        if dump_ui is True: _dump_ui(device, f'{prefix_with_ts}-final-fail', logdir)
         return
 
 
