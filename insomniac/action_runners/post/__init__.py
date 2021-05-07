@@ -19,7 +19,7 @@ class PostActionRunner(CoreActionsRunner):
             "help": 'location to tag the post',
             "default": None
         },
-        "people": {
+        "tagnames": {
             "nargs": '+',
             "help": 'accounts to tag in the post (with or without @)',
             "default": None
@@ -33,7 +33,7 @@ class PostActionRunner(CoreActionsRunner):
 
     caption = ''
     location = ''
-    people = []
+    tagnames = []
     image_path_on_host = ''
     dump_ui = False
 
@@ -51,7 +51,7 @@ class PostActionRunner(CoreActionsRunner):
     def reset_params(self):
         self.caption = ''
         self.location = ''
-        self.people = []
+        self.tagnames = []
         self.image_path = ''
         self.dump_ui = False
 
@@ -66,8 +66,8 @@ class PostActionRunner(CoreActionsRunner):
         if args.location is not None:
             self.location = args.location
 
-        if args.people is not None:
-            self.people = args.people
+        if args.tagnames is not None:
+            self.tagnames = args.tagnames
 
         if args.dump_ui is not None:
             self.dump_ui = True
@@ -90,7 +90,7 @@ class PostActionRunner(CoreActionsRunner):
                            action_status=self.action_status,
                            is_limit_reached=is_limit_reached,
                            caption=self.caption,
-                           people=self.people,
+                           tagnames=self.tagnames,
                            location=self.location,
                            dump_ui=self.dump_ui,
                            image_path_on_device=image_path_on_device)

@@ -79,7 +79,7 @@ def _middlish(bounds):
     y = randrange(min_y, max_y)
     return x, y
 
-def post(device, on_action, storage, session_state, action_status, is_limit_reached, caption, people, location, dump_ui, image_path_on_device):
+def post(device, on_action, storage, session_state, action_status, is_limit_reached, caption, tagnames, location, dump_ui, image_path_on_device):
     _printok("Starting a new post")
 
     # if not open_new_post(device=device, username=None, on_action=on_action):
@@ -147,7 +147,7 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
     blue_arrow2.click()
 
     #
-    # We have now reached the details page, where caption, people, and location can be entered
+    # We have now reached the details page, where caption, tagnames, and location can be entered
     #
 
     _wait_for('default locations to populate', device, 'com.instagram.android', 'android.widget.LinearLayout', 'suggested_locations_container')
@@ -165,20 +165,20 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
     else:
         print('No caption provided')
 
-    if len(people) > 1:
+    if len(tagnames) > 1:
         raise ValueError(
-            f"Too many people to tag in photo - can only handle 0 or 1")
+            f"Too many tagnames to tag in photo - can only handle 0 or 1")
 
-    if len(people) == 1:
-        print("Tagging person in post: " + people[0])
-        tag_people_button = device.find(
+    if len(tagnames) == 1:
+        print("Tagging person in post: " + tagnames[0])
+        tag_tagnames_button = device.find(
             className='android.widget.TextView', text='Tag People')
-        if not tag_people_button.exists():
-            return _fail(device, dump_ui, "Cannot find tag_people_button. Quitting.")
+        if not tag_tagnames_button.exists():
+            return _fail(device, dump_ui, "Cannot find tag_tagnames_button. Quitting.")
 
         # clicking this button opens the image
         print("Click \"Tag People\" button")
-        tag_people_button.click()
+        tag_tagnames_button.click()
 
         _wait_for('image to display', device, 'com.instagram.android', 'android.widget.ImageView', 'tag_image_view')
 
@@ -199,14 +199,14 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
             return _fail(device, dump_ui, "Cannot find user_searchbox. Quitting.")
 
         # # let's just go ahead and type
-        print("Type username '" + people[0] + "' into user_searchbox")
-        user_searchbox.set_text(people[0])
+        print("Type username '" + tagnames[0] + "' into user_searchbox")
+        user_searchbox.set_text(tagnames[0])
 
         _wait_for('users search list', device, 'com.instagram.android', 'android.widget.ListView', 'list')
 
         # select the first user
         selected_user_button = device.find(
-            resourceId='com.instagram.android:id/row_search_user_username', className='android.widget.TextView', text=people[0])
+            resourceId='com.instagram.android:id/row_search_user_username', className='android.widget.TextView', text=tagnames[0])
         if not selected_user_button.exists():
             return _fail(device, dump_ui, "Cannot find selected_user_button. Quitting.")
 
@@ -221,8 +221,8 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
 
         blue_arrow3.click()
 
-    if len(people) == 0:
-        print("No people to tag in post")
+    if len(tagnames) == 0:
+        print("No tagnames to tag in post")
 
     #
     # location
