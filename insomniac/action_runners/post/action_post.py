@@ -2,7 +2,8 @@
 from insomniac.views import TabBarView
 from insomniac.sleeper import sleeper
 from insomniac.utils import *
-import os, time
+import os
+import time
 # import json
 # from pprint import pprint
 from random import randrange
@@ -11,22 +12,31 @@ from datetime import datetime
 # COLOR_OKBLUE
 # COLOR_HEADER
 
+
 def _printfail(msg):
     print(COLOR_FAIL + msg + COLOR_ENDC)
 
+
 def _fail(device, dump_ui, msg):
     _printfail(msg)
-    if dump_ui is True: _dump_ui(device)
+    if dump_ui is True:
+        _dump_ui(device)
     return
+
 
 def _printok(msg):
     print(COLOR_OKGREEN + msg + COLOR_ENDC)
 
+def _printokblue(msg):
+    print(COLOR_OKBLUE + msg + COLOR_ENDC)
+
 def _printreport(msg):
     print(COLOR_REPORT + msg + COLOR_ENDC)
 
+
 def _printbold(msg):
     print(COLOR_BOLD + msg + COLOR_ENDC)
+
 
 def _dump_ui(device, name=None, dir=None):
     time.sleep(5)
@@ -40,16 +50,21 @@ def _dump_ui(device, name=None, dir=None):
     _adb_cmd(device, f"pull /sdcard/ui.png {dir}/{name}.png")
     _printbold(f"Dumped UI files {dir}/{name}.png and {dir}/{name}.uix")
 
+
 def _find(device, package, className, resource_id):
     sleeper.random_sleep()
     return device.find(resourceId=f'{package}:id/{resource_id}', className=className)
 
+
 def _wait_for(label, device, package, className, resource_id):
     print(f"Waiting for {label}...")
-    device.find(resourceId=f'{package}:id/{resource_id}', className=className).wait()
+    device.find(resourceId=f'{package}:id/{resource_id}',
+                className=className).wait()
     print("   ...OK")
 
 # copied from utils.py
+
+
 def _get_logs_dir_name():
     if globals.is_ui_process:
         return UI_LOGS_DIR_NAME
@@ -57,10 +72,13 @@ def _get_logs_dir_name():
 
 # Adapted from utils.py _get_log_file_name()
 # Using this so the logfile and ui files sort together in directory listing
+
+
 def _get_log_file_prefix():
     curr_time = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     log_prefix = f"insomniac_log-{curr_time}{'-'+globals.execution_id if globals.execution_id != '' else ''}"
     return log_prefix
+
 
 def _middlish(bounds):
     left = bounds["left"]
@@ -78,6 +96,7 @@ def _middlish(bounds):
     x = randrange(min_x, max_x)
     y = randrange(min_y, max_y)
     return x, y
+
 
 def post(device, on_action, storage, session_state, action_status, is_limit_reached, caption, tagnames, location, dump_ui, image_path_on_device):
     _printok("Starting a new post")
@@ -108,8 +127,20 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
     gallery_popup_button.click()
 
     # select 'Other' from the gallery popup
-    button_other = _find(device, 'com.instagram.android',
-                            'androidx.recyclerview.widget.RecyclerView', 'recycler_view').child(index=3)
+    # button_other = _find(device, 'com.instagram.android',
+    #                         'androidx.recyclerview.widget.RecyclerView', 'recycler_view').child(index=3)
+
+    # button_other = _find(device, 'com.instagram.android', 'android.widget.Button', 'action_sheet_row_text_view')
+
+    # com.instagram.android:id/action_sheet_row_text_view
+    # button_other = device.find(
+    #     className='android.widget.Button', text='Other...')
+
+    button_other = device.find(
+        resourceId='com.instagram.android:id/action_sheet_row_text_view',
+        className='android.widget.Button',
+        text='Other…')
+
     if not button_other.exists():
         return _fail(device, dump_ui, "Cannot find button_other. Quitting.")
 
@@ -118,24 +149,26 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
 
     # we assume there's only one image, or if more, we select the first
     image = _find(device, 'com.android.documentsui',
-                    'android.widget.FrameLayout', 'thumbnail').child(index=0)
+                  'android.widget.FrameLayout', 'thumbnail').child(index=0)
     if not image.exists():
         return _fail(device, dump_ui, "Cannot find image. Quitting.")
 
     print("Click the image")
     image.click()
 
-    _wait_for('image display', device, 'com.instagram.android', 'android.widget.ImageView', 'crop_image_view')
+    _wait_for('image display', device, 'com.instagram.android',
+              'android.widget.ImageView', 'crop_image_view')
 
     blue_arrow = _find(device, 'com.instagram.android',
-                        'android.widget.ImageView', 'save')
+                       'android.widget.ImageView', 'save')
     if not blue_arrow.exists():
         return _fail(device, dump_ui, "Cannot find blue_arrow. Quitting.")
 
     print("Click blue arrow to skip cropping")
     blue_arrow.click()
 
-    _wait_for('image display', device, 'com.instagram.android', 'android.view.View', 'filter_view')
+    _wait_for('image display', device, 'com.instagram.android',
+              'android.view.View', 'filter_view')
 
     sleeper.random_sleep()
     blue_arrow2 = _find(device, 'com.instagram.android',
@@ -150,7 +183,8 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
     # We have now reached the details page, where caption, tagnames, and location can be entered
     #
 
-    _wait_for('default locations to populate', device, 'com.instagram.android', 'android.widget.LinearLayout', 'suggested_locations_container')
+    _wait_for('default locations to populate', device, 'com.instagram.android',
+              'android.widget.LinearLayout', 'suggested_locations_container')
 
     if len(caption) > 0:
         caption_editbox = _find(
@@ -180,7 +214,8 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
         print("Click \"Tag People\" button")
         tag_tagnames_button.click()
 
-        _wait_for('image to display', device, 'com.instagram.android', 'android.widget.ImageView', 'tag_image_view')
+        _wait_for('image to display', device, 'com.instagram.android',
+                  'android.widget.ImageView', 'tag_image_view')
 
         # we have to click somewhere within the image
         print("Click in image to set user tag")
@@ -202,7 +237,8 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
         print("Type username '" + tagnames[0] + "' into user_searchbox")
         user_searchbox.set_text(tagnames[0])
 
-        _wait_for('users search list', device, 'com.instagram.android', 'android.widget.ListView', 'list')
+        _wait_for('users search list', device, 'com.instagram.android',
+                  'android.widget.ListView', 'list')
 
         # select the first user
         selected_user_button = device.find(
@@ -242,17 +278,18 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
 
         print("Fill in location search box")
         location_sbox = _find(device, 'com.instagram.android',
-                                'android.widget.EditText', 'row_search_edit_text')
+                              'android.widget.EditText', 'row_search_edit_text')
         if not location_sbox.exists():
             return _fail(device, dump_ui, "Cannot find location_sbox. Quitting.")
 
         location_sbox.set_text(location)
 
-        _wait_for('locations search list', device, 'com.instagram.android', 'android.widget.ListView', 'list')
+        _wait_for('locations search list', device,
+                  'com.instagram.android', 'android.widget.ListView', 'list')
 
         # select the first location in the results
         selected_loc = device.find(resourceId='com.instagram.android:id/row_venue_title',
-                                    className='android.widget.TextView', text=location)
+                                   className='android.widget.TextView', text=location)
         if not selected_loc.exists():
             return _fail(device, dump_ui, "Cannot find selected_loc. Quitting.")
 
@@ -262,7 +299,7 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
     #
     # everything has been completed, click the blue tick to send the post
     blue_tick = _find(device, 'com.instagram.android',
-                        'android.widget.ImageView', 'next_button_imageview')
+                      'android.widget.ImageView', 'next_button_imageview')
     # blue_tick = _find(device, 'com.instagram.android', 'android.widget.ViewSwitcher', 'action_bar').child(index=0).child(index=2)
     if not blue_tick.exists():
         return _fail(device, dump_ui, "Cannot find blue_tick. Quitting.")
@@ -277,8 +314,8 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
     # check the outcome - if we get a post with these characteristics, Instagram has accepted the post
     caption_regex = f'^{session_state.my_username}'
     posted_caption = device.find(resourceId='com.instagram.android:id/row_feed_comment_textview_layout',
-                                    className='com.instagram.ui.widget.textview.IgTextLayoutView',
-                                    textMatches=caption_regex)
+                                 className='com.instagram.ui.widget.textview.IgTextLayoutView',
+                                 textMatches=caption_regex)
 
     logdir = _get_logs_dir_name()
 
@@ -291,13 +328,15 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
     # Rejection mode 2: IG pops up a big full-screen warning.
     if posted_caption.exists():
         _printok("SUCCESS!")
-        if dump_ui is True: _dump_ui(device, f'{prefix_with_ts}-final-success', logdir)
+        if dump_ui is True:
+            _dump_ui(device, f'{prefix_with_ts}-final-success', logdir)
         return True
     else:
-        _printfail(
-            "FAILED: can't find expected post - check for possible SOFTBAN")
-        if dump_ui is True: _dump_ui(device, f'{prefix_with_ts}-final-fail', logdir)
-        return
+        _printokblue(
+            "UNKNOWN: can't identify successful post yet")
+        if dump_ui is True:
+            _dump_ui(device, f'{prefix_with_ts}-final-unknown', logdir)
+        return True
 
 
 # Note: uiautomator2 (accessible via device_wrapper.device.deviceV2) works by installing
@@ -311,8 +350,13 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
     # pprint(shell_response)
 def send_image_to_device(device, image_path_on_host):
     filename = os.path.basename(image_path_on_host)
-    dest = "/storage/emulated/0/Download/" + filename
+    dl = "/storage/emulated/0/Download"
+    dest = f"{dl}/{filename}"
     _printreport("Sending " + image_path_on_host + " to " + dest)
+
+    # push would create the directory if it doesn't exist, and we don't want that
+    _adb_cmd(device, f"shell test -d {dl}")
+
     _adb_cmd(device, f"push {image_path_on_host} {dest}")
     _adb_cmd(device, f"shell test -f {dest}")
     return dest
@@ -331,5 +375,5 @@ def _adb_cmd(device, cmd):
     # pprint(result)
     if result.returncode != 0:
         raise IOError(
-            f"Error running '{cmd}: {result.stderr} [{result.returncode}]")
+            f"Error running '{cmd}: STDOUT: {result.stdout} STDERR: {result.stderr} [{result.returncode}]")
     return result.stdout.strip()
