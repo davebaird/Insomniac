@@ -27,8 +27,10 @@ def _fail(device, dump_ui, msg):
 def _printok(msg):
     print(COLOR_OKGREEN + msg + COLOR_ENDC)
 
+
 def _printokblue(msg):
     print(COLOR_OKBLUE + msg + COLOR_ENDC)
+
 
 def _printreport(msg):
     print(COLOR_REPORT + msg + COLOR_ENDC)
@@ -112,6 +114,16 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
 
     start_new_post_button = _find(
         device, 'com.instagram.android', 'android.widget.ImageView', 'action_bar_left_button')
+    # if not start_new_post_button.exists():
+    #     start_new_post_button = device.find(
+    #         resourceId='com.instagram.android:id/creation_tab',
+    #         className='android.widget.Button',
+    #         text='Camera')  # contentDescription='Camera')
+    if not start_new_post_button.exists():
+        sleeper.random_sleep()
+        start_new_post_button = device.find(resourceId='com.instagram.android:id/tab_bar',
+                                            className='android.widget.LinearLayout').child(index=2)
+
     if not start_new_post_button.exists():
         return _fail(device, dump_ui, "Cannot find start_new_post_button. Quitting.")
 
@@ -136,6 +148,7 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
     # button_other = device.find(
     #     className='android.widget.Button', text='Other...')
 
+    sleeper.random_sleep()
     button_other = device.find(
         resourceId='com.instagram.android:id/action_sheet_row_text_view',
         className='android.widget.Button',
@@ -146,6 +159,26 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
 
     print("Select \"Other...\" option")
     button_other.click()
+
+    # on some phones this takes us directly to the Downloads folder, on others it
+    # goes to the Recent folder and we need to navigate to Downloads
+    sleeper.random_sleep()
+    recent_label = device.find(className='android.widget.TextView', text='Recent')
+    if recent_label.exists():
+        hamburger_menu = device.find(className='android.view.ViewGroup', resourceId='com.android.documentsui:id/toolbar').child(index=0)
+        if not hamburger_menu.exists():
+            return _fail(device, dump_ui, "Cannot find hamb. file menu. Quitting.")
+
+        print("Click the hamb. menu")
+        hamburger_menu.click()
+        sleeper.random_sleep()
+        # return _fail(device, dump_ui, "Need to figure out how to click the Downloads button. Quitting.")
+        downloads_menuitem = _find(device, 'com.android.documentsui', 'android.widget.ListView', 'roots_list').child(index=2)
+        # downloads_menuitem = _find(device, 'com.android.documentsui', 'android.widget.TextView', 'title')
+        sleeper.random_sleep()
+        downloads_menuitem = device.find(className='android.widget.TextView', text='Downloads')
+        print("Click the Downloads menu item")
+        downloads_menuitem.click()
 
     # we assume there's only one image, or if more, we select the first
     image = _find(device, 'com.android.documentsui',
