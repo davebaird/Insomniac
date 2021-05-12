@@ -65,12 +65,12 @@ def _find_wait_exists(device, dump_ui, label, **kwargs):
     thing = _maybe_find_wait_exists(device, label=label, **kwargs)
     if thing is not None:
         return thing
-    _fail2(device, dump_ui, label)
+    _fail(device, dump_ui, label)
 
 
 def _maybe_find_wait_exists(device, label='it', **kwargs):
     sleeper.random_sleep()
-    for rep in range(0, WAIT_EXISTS):
+    for _ in range(0, WAIT_EXISTS):
         thing = device.find(**kwargs)
         if thing.exists():
             print(f"_maybe_find_wait_exists FOUND {label}")
@@ -81,20 +81,13 @@ def _maybe_find_wait_exists(device, label='it', **kwargs):
     print(f"_maybe_find_wait_exists didn't find {label}... GIVING UP")
 
 
-def _fail2(device, dump_ui, label):
-    _printfail(f'Cannot find {label}. Quitting.')
+def _fail(device, dump_ui, label, msg=None):
+    if msg is None:
+        msg = f'Cannot find {label}. Quitting.'
+    _printfail(msg)
     if dump_ui is True:
         logdir = _get_logs_dir_name()
         prefix_with_ts = _get_log_file_prefix()
-        _dump_ui(device, f'{prefix_with_ts}-error-{label}', logdir)
-    return
-
-
-def _fail(device, dump_ui, msg, label=''):
-    _printfail(msg)
-    logdir = _get_logs_dir_name()
-    prefix_with_ts = _get_log_file_prefix()
-    if dump_ui is True:
         _dump_ui(device, f'{prefix_with_ts}-error-{label}', logdir)
     return
 
@@ -105,10 +98,9 @@ def _get_logs_dir_name():
         return UI_LOGS_DIR_NAME
     return ENGINE_LOGS_DIR_NAME
 
+
 # Adapted from utils.py _get_log_file_name()
 # Using this so the logfile and ui files sort together in directory listing
-
-
 def _get_log_file_prefix():
     curr_time = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     log_prefix = f"insomniac_log-{curr_time}{'-'+globals.execution_id if globals.execution_id != '' else ''}"
@@ -140,7 +132,7 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
     print("Get home_view, prepare to post")
     home_view = TabBarView(device).navigate_to_home()
     if home_view is None:
-        return _fail(device, dump_ui, "Cannot find home_view")
+        return _fail(device, dump_ui, 'home_view', "Cannot find home_view")
 
     # -----
     print("Press \"New Post (+)\" button")
@@ -156,7 +148,7 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
 
         start_new_post_button = start_new_post_button_parent.child(index=2)
         if not start_new_post_button.exists():
-            return _fail2(device, dump_ui, "start_new_post_button")
+            return _fail(device, dump_ui, "start_new_post_button")
 
     start_new_post_button.click()
 
@@ -195,7 +187,7 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
             hamburger_menu = hamburger_menu_parent.child(index=0)
             _wait_exists(hamburger_menu)
             if not hamburger_menu.exists():
-                return _fail2(device, dump_ui, "hamburger_menu")
+                return _fail(device, dump_ui, "hamburger_menu")
             hamburger_menu.click()
 
             print("Click the Downloads menu item")
@@ -218,7 +210,7 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
     image = image_parent.child(index=0)
     _wait_exists(image)
     if not image.exists():
-        return _fail2(device, dump_ui, "image")
+        return _fail(device, dump_ui, "image")
     image.click()
 
     _wait_for('image display', device, 'com.instagram.android',
