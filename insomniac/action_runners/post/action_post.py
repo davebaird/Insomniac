@@ -1,6 +1,7 @@
 from insomniac.views import TabBarView
 from insomniac.sleeper import sleeper
 from insomniac.utils import *
+from insomniac.device_facade import DeviceFacade
 import os
 import time
 # import json
@@ -263,8 +264,19 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
         sleeper.random_sleep()
         caption_editbox.set_text(caption)
 
+        device.close_keyboard()
+
     else:
         print('No caption provided')
+
+    # if the caption is long we will need to scroll back to the top to see the tagnames button
+    # ! this doesn't seem to be working (but not fully tested), but after adding device.close_keyboard() it's not so important,
+    # ! we can see the whole screen so it would have to be a huge caption to lose the tagnames button.
+    print("Scroll up...")
+    # Remember: to scroll up we need to swipe down :)
+    for _ in range(3):
+        print("  ... swipe down...")
+        device.swipe(DeviceFacade.Direction.BOTTOM, scale=0.25)
 
     # -----
     if len(tagnames) > 1:
@@ -307,6 +319,8 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
         if user_searchbox is None:
             return
         user_searchbox.set_text(tagnames[0])
+
+        device.close_keyboard()
 
         _wait_for('users search list', device, 'com.instagram.android',
                   'android.widget.ListView', 'list')
@@ -355,6 +369,8 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
         if location_sbox is None:
             return
         location_sbox.set_text(location)
+
+        device.close_keyboard()
 
         _wait_for('locations search list', device,
                   'com.instagram.android', 'android.widget.ListView', 'list')
