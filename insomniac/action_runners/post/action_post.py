@@ -279,6 +279,9 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
         print("No tagnames to tag in post")
 
     if len(tagnames) == 1:
+        device.close_keyboard()
+        time.sleep(2)
+
         print(f"Tagging {tagnames[0]} in post: click \"Tag People\" button")
         tag_tagnames_button = _find_wait_exists(device, dump_ui, "tag_tagnames_button",
                                                 className='android.widget.TextView',

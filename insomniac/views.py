@@ -372,6 +372,7 @@ class SearchView(InstagramView):
         print(f"@{username} is not in recent searching history...")
         search_edit_text.set_text(username)
         username_view = self._get_username_row(username)
+        username_view.wait()
 
         if not username_view.exists():
             print(COLOR_FAIL + f"Cannot find profile @{username}, abort." + COLOR_ENDC)
