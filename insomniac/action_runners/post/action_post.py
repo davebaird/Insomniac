@@ -1,4 +1,4 @@
-from insomniac.views import TabBarView
+from insomniac.views import TabBarView, case_insensitive_re
 from insomniac.sleeper import sleeper
 from insomniac.utils import *
 from insomniac.device_facade import DeviceFacade
@@ -11,6 +11,9 @@ from datetime import datetime
 
 # COLOR_OKBLUE
 # COLOR_HEADER
+
+# For selecting page elements, see docs here under heading "Selector":
+#   https://github.com/openatx/uiautomator2
 
 WAIT_EXISTS = 5
 
@@ -50,15 +53,15 @@ def _wait_for(label, device, package, className, resource_id):
     print("   ...OK")
 
 
-def _wait_exists(thing, label='it'):
-    for rep in range(0, WAIT_EXISTS):
-        if thing.exists:
-            print(f"_wait_exists FOUND {label}")
-            return
-        print(f"_wait_exists didn't find {label}... sleeping 1")
-        time.sleep(1)
+# def _wait_exists(thing, label='it'):
+#     for rep in range(0, WAIT_EXISTS):
+#         if thing.exists:
+#             print(f"_wait_exists FOUND {label}")
+#             return
+#         print(f"_wait_exists didn't find {label}... sleeping 1")
+#         time.sleep(1)
 
-    print(f"_wait_exists didn't find {label}... GIVING UP")
+#     print(f"_wait_exists didn't find {label}... GIVING UP")
 
 
 def _find_wait_exists(device, dump_ui, label, **kwargs):
@@ -68,9 +71,9 @@ def _find_wait_exists(device, dump_ui, label, **kwargs):
     _fail(device, dump_ui, label)
 
 
-def _maybe_find_wait_exists(device, label='it', **kwargs):
+def _maybe_find_wait_exists(device, label='it', reps=WAIT_EXISTS, **kwargs):
     sleeper.random_sleep()
-    for _ in range(0, WAIT_EXISTS):
+    for _ in range(0, reps):
         thing = device.find(**kwargs)
         if thing.exists():
             print(f"_maybe_find_wait_exists FOUND {label}")
@@ -79,6 +82,7 @@ def _maybe_find_wait_exists(device, label='it', **kwargs):
         time.sleep(1)
 
     print(f"_maybe_find_wait_exists didn't find {label}... GIVING UP")
+    return
 
 
 def _fail(device, dump_ui, label, msg=None):
@@ -125,40 +129,110 @@ def _middlish(bounds):
     return x, y
 
 
-def post(device, on_action, storage, session_state, action_status, is_limit_reached, caption, tagnames, location, dump_ui, image_path_on_device):
+# def _get_start_new_post_button(device, dump_ui):
+#     # action_bar is at the top
+#     start_new_post_button = _maybe_find_wait_exists(device, label='start_new_post_button',
+#                                                     resourceId='com.instagram.android:id/action_bar_left_button',
+#                                                     className='android.widget.ImageView')
+#     if start_new_post_button is not None:
+#         return start_new_post_button
+
+#     # start_new_post_button = _maybe_find_wait_exists(device, label='start_new_post_button',
+#     #                                                 resourceId='com.instagram.android:id/action_bar_left_button',
+#     #                                                 className='android.widget.Button')
+#     # if start_new_post_button is not None:
+#     #     return start_new_post_button
+
+#     # tab_bar is at the bottom
+#     start_new_post_button_parent = _find_wait_exists(device, dump_ui, 'start_new_post_button_parent',
+#                                                      resourceId='com.instagram.android:id/tab_bar',
+#                                                      className='android.widget.LinearLayout')
+#     if start_new_post_button_parent is None:
+#         return
+
+#     start_new_post_button = start_new_post_button_parent.child(index=2)
+#     if start_new_post_button.exists():
+#         print("PROBABLY got start_new_post_button but using .child() is fragile")
+#         return start_new_post_button
+
+#     return _fail(device, dump_ui, "start_new_post_button")
+
+
+# def _go_to_profile_view(device, dump_ui):
+#     profile_view = TabBarView(device).navigate_to_profile()
+#     if profile_view is None:
+#         return _fail(device, dump_ui, 'profile_view', "Cannot find profile_view")
+
+
+# def _get_start_new_post_buttonDEV(device, dump_ui):
+#     action_bar = _find_wait_exists(device, dump_ui, 'action_bar',
+#                                    resourceId='com.instagram.android:id/action_bar',
+#                                    className='android.widget.LinearLayout')
+
+#     if action_bar is None:
+#         return
+
+#     start_new_post_button = action_bar.child(
+#         descriptionMatches=case_insensitive_re('Create New')
+#     )
+
+#     # start_new_post_button = action_bar.child(index=1)
+#     if not start_new_post_button.exists():
+#         return _fail(device, dump_ui, 'start_new_post_button')
+
+#     start_new_post_button.click()
+
+#     new_feed_post_button = _find_wait_exists(device, dump_ui, 'new_feed_post_button',
+#                                              resourceId='com.instagram.android:id/label',
+#                                              className='android.widget.TextView',
+#                                              text='Feed Post')
+
+#     # could be None
+#     return new_feed_post_button
+
+
+def start_post(device, dump_ui):
     _printok("Starting a new post")
 
-    # -----
     print("Get home_view, prepare to post")
-    home_view = TabBarView(device).navigate_to_home()
-    if home_view is None:
-        return _fail(device, dump_ui, 'home_view', "Cannot find home_view")
+    # profile_view = TabBarView(device).navigate_to_profile()
+    # home_view = TabBarView(device).navigate_to_home()
+    # if home_view is None:
+    #     return _fail(device, dump_ui, 'home_view', "Cannot find home_view")
 
-    # -----
-    print("Press \"New Post (+)\" button")
-    start_new_post_button = _maybe_find_wait_exists(device,
-                                                    resourceId='com.instagram.android:id/action_bar_left_button',
-                                                    className='android.widget.ImageView')
-    if start_new_post_button is None:
-        start_new_post_button_parent = _find_wait_exists(device, dump_ui, 'start_new_post_button_parent',
-                                                         resourceId='com.instagram.android:id/tab_bar',
-                                                         className='android.widget.LinearLayout')
-        if start_new_post_button_parent is None:
-            return
+    TabBarView(device).navigate_to_home()
 
-        start_new_post_button = start_new_post_button_parent.child(index=2)
-        if not start_new_post_button.exists():
-            return _fail(device, dump_ui, "start_new_post_button")
+    # the button starts out as a camera button, we need to click it then come back, it will then have changed to the post button
+    post_button = _find_wait_exists(device, dump_ui, 'post_button_1',
+                                    resourceId='com.instagram.android:id/action_bar_left_button',
+                                    className='android.widget.Button',
+                                    description='Camera')
+    if post_button is None:
+        return
 
-    start_new_post_button.click()
+    post_button.click()
+    sleeper.random_sleep()
+    device.back()
 
-    # -----
+    post_button2 = _find_wait_exists(device, dump_ui, 'post_button_2',
+                                     resourceId='com.instagram.android:id/action_bar_left_button',
+                                     className='android.widget.Button',
+                                     description='Camera')
+    ret = post_button2.click()
+    _printok("post_button.click() returned:")
+    print(ret)
+    return True
+
+
+def select_image(device, dump_ui):
     print("Press \"Gallery\" dropdown button")
-    gallery_popup_button = _find_wait_exists(device, dump_ui, 'gallery_popup_button',
+    gallery_popup_button = _find_wait_exists(device, dump_ui, 'gallery_popup_button_alt',
                                              className='android.widget.Spinner',
-                                             resourceId='com.instagram.android:id/gallery_folder_menu_alt')
+                                             resourceIdMatches=case_insensitive_re(f"{device.app_id}:id/gallery_folder_menu(?:_alt)?$"))
+
     if gallery_popup_button is None:
         return
+
     gallery_popup_button.click()
 
     # -----
@@ -169,25 +243,24 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
                                      text='Other…')
     if button_other is None:
         return
+
     button_other.click()
 
     # -----
     # on some phones this takes us directly to the Downloads folder, on others it
     # goes to the Recent folder and we need to navigate to Downloads:
     print("Click the hamb. menu")
-    recent_label = _maybe_find_wait_exists(device,
+    recent_label = _maybe_find_wait_exists(device, label='recent_label', reps=2,
                                            className='android.widget.TextView',
                                            text='Recent')
 
     if recent_label is not None:
-        hamburger_menu_parent = _maybe_find_wait_exists(device,
+        hamburger_menu_parent = _maybe_find_wait_exists(device, label='hamburger_menu_parent',
                                                         className='android.view.ViewGroup',
-                                                        resourceId='com.android.documentsui:id/toolbar')
+                                                        resourceIdMatches=case_insensitive_re('com.(?:google\.)?android.documentsui:id/toolbar'))
+
         if hamburger_menu_parent is not None:
             hamburger_menu = hamburger_menu_parent.child(index=0)
-            _wait_exists(hamburger_menu)
-            if not hamburger_menu.exists():
-                return _fail(device, dump_ui, "hamburger_menu")
             hamburger_menu.click()
 
             print("Click the Downloads menu item")
@@ -205,18 +278,24 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
     image_parent = _find_wait_exists(device, dump_ui, 'image',
                                      className='android.widget.FrameLayout',
                                      resourceId='com.android.documentsui:id/thumbnail')
+
+    if image_parent is None:
+        image_parent = _find_wait_exists(device, dump_ui, 'image',
+                                         className='android.widget.FrameLayout',
+                                         resourceId='com.google.android.documentsui:id/thumbnail')
+
     if image_parent is None:
         return
     image = image_parent.child(index=0)
-    _wait_exists(image)
-    if not image.exists():
-        return _fail(device, dump_ui, "image")
     image.click()
 
     _wait_for('image display', device, 'com.instagram.android',
               'android.widget.ImageView', 'crop_image_view')
 
-    # -----
+    return True
+
+
+def accept_image(device, dump_ui):
     print("Click blue arrow to skip cropping")
     blue_arrow = _find_wait_exists(device, dump_ui, 'blue_arrow',
                                    className='android.widget.ImageView',
@@ -228,7 +307,6 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
     _wait_for('image display', device, 'com.instagram.android',
               'android.view.View', 'filter_view')
 
-    # -----
     print("Click blue arrow to skip filters")
     blue_arrow2 = _find_wait_exists(device, dump_ui, 'blue_arrow2',
                                     className='android.widget.ImageView',
@@ -237,14 +315,10 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
         return
     blue_arrow2.click()
 
-    #
-    # We have now reached the details page, where caption, tagnames, and location can be entered
-    #
+    return True
 
-    _wait_for('default locations to populate', device, 'com.instagram.android',
-              'android.widget.LinearLayout', 'suggested_locations_container')
 
-    # -----
+def add_caption(device, caption, dump_ui):
     if len(caption) > 0:
         print("Typing in the caption")
         caption_editbox = _find_wait_exists(device, dump_ui, "caption_editbox",
@@ -252,6 +326,7 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
                                             resourceId='com.instagram.android:id/caption_text_view')
         if caption_editbox is None:
             return
+
         caption_editbox.click()
         sleeper.random_sleep()
         caption_editbox.set_text(caption)
@@ -270,7 +345,10 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
         print("  ... swipe down...")
         device.swipe(DeviceFacade.Direction.BOTTOM, scale=0.25)
 
-    # -----
+    return True
+
+
+def add_tags(device, tagnames, dump_ui):
     if len(tagnames) > 1:
         raise ValueError(
             f"Too many tagnames to tag in photo - can only handle 0 or 1")
@@ -339,10 +417,10 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
             return
         blue_arrow3.click()
 
-    #
-    # location
-    #
+    return True
 
+
+def add_location(device, location, dump_ui):
     if len(location) == 0:
         print("No location to add to post")
 
@@ -380,19 +458,29 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
             return
         selected_loc.click()
 
-    # -----
-    # everything has been completed, click the blue tick to send the post
+    return True
+
+
+def do_post(device, dump_ui):
     _printok("Send post and wait for result")
     blue_tick = _find_wait_exists(device, dump_ui, 'blue_tick',
                                   className='android.widget.ImageView',
                                   resourceId='com.instagram.android:id/next_button_imageview')
     if blue_tick is None:
         return
+
     blue_tick.click()
 
-    # wait for Instagram to do its thing
-    time.sleep(14)
+    # if we started from the profile view
+    time.sleep(5)
+    TabBarView(device).navigate_to_home()
 
+    # wait for Instagram to do its thing
+    time.sleep(9)
+
+    return True
+
+def check_posted(device, session_state, dump_ui):
     # -----
     # check the outcome - if we get a post with these characteristics, Instagram has accepted the post
     caption_regex = f'^{session_state.my_username}'
@@ -424,6 +512,48 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
         if dump_ui is True:
             _dump_ui(device, f'{prefix_with_ts}-final-unknown', logdir)
         return True
+
+
+def _debug_end():
+    _printokblue("DEBUG HALT")
+    time.sleep(10)
+
+
+def post(device, on_action, storage, session_state, action_status, is_limit_reached, caption, tagnames, location, dump_ui, image_path_on_device):
+
+    # This function will have influence on click, long_click, drag_to, get_text, set_text, clear_text, etc.
+    device.deviceV2.implicitly_wait(10)
+
+    if start_post(device, dump_ui) is not True:
+        return
+
+    if select_image(device, dump_ui) is not True:
+        return
+
+    if accept_image(device, dump_ui) is not True:
+        return
+
+    #
+    # We have now reached the details page, where caption, tagnames, and location can be entered
+    #
+
+    _wait_for('default locations to populate', device, 'com.instagram.android',
+              'android.widget.LinearLayout', 'suggested_locations_container')
+
+    if add_caption(device, caption, dump_ui) is not True:
+        return
+
+    if add_tags(device, tagnames, dump_ui) is not True:
+        return
+
+    if add_location(device, location, dump_ui) is not True:
+        return
+
+    if do_post(device, dump_ui) is not True:
+        return
+
+    return check_posted(device, session_state, dump_ui)
+
 
 
 # Note: uiautomator2 (accessible via device_wrapper.device.deviceV2) works by installing
