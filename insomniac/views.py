@@ -261,6 +261,11 @@ class PlacesView(InstagramView):
 
 class SearchView(InstagramView):
     def _get_search_edit_text(self):
+
+        # often the page opens already slightly scrolled down, hiding the search box
+        for _ in range(3):
+            self.device.swipe(DeviceFacade.Direction.BOTTOM, scale=0.25)
+
         return self.device.find(
             resourceIdMatches=case_insensitive_re(
                 f"{self.device.app_id}:id/action_bar_search_edit_text"
