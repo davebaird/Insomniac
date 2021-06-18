@@ -13,6 +13,11 @@ DATABASE_VERSION = 1
 
 db = SqliteDatabase(DATABASE_NAME, autoconnect=False)
 
+# import logging
+# logger = logging.getLogger('peewee')
+# logger.setLevel(logging.DEBUG)
+# logger.addHandler(logging.StreamHandler())
+
 
 class InsomniacModel(Model):
     class Meta:
@@ -329,6 +334,7 @@ class InstagramProfile(InsomniacModel):
                            & (InsomniacAction.actor_profile == self)
                            & ((datetime.now().timestamp() - InsomniacAction.timestamp <= timedelta(hours=hours).total_seconds()) if hours is not None else True))
                     .limit(1)) > 0:
+                # print(f"{username} dropped: GetProfileAction ({hours} hours)")
                 return True
 
             if len(LikeAction.select(LikeAction.target_user)
@@ -337,6 +343,7 @@ class InstagramProfile(InsomniacModel):
                            & (InsomniacAction.actor_profile == self)
                            & ((datetime.now().timestamp() - InsomniacAction.timestamp <= timedelta(hours=hours).total_seconds()) if hours is not None else True))
                     .limit(1)) > 0:
+                # print(f"{username} dropped: LikeAction ({hours} hours)")
                 return True
 
             if len(CommentAction.select(CommentAction.target_user)
@@ -345,6 +352,7 @@ class InstagramProfile(InsomniacModel):
                            & (InsomniacAction.actor_profile == self)
                            & ((datetime.now().timestamp() - InsomniacAction.timestamp <= timedelta(hours=hours).total_seconds()) if hours is not None else True))
                     .limit(1)) > 0:
+                # print(f"{username} dropped: CommentAction ({hours} hours)")
                 return True
         return False
 
@@ -356,6 +364,7 @@ class InstagramProfile(InsomniacModel):
                            & (InsomniacAction.actor_profile == self)
                            & ((datetime.now().timestamp() - InsomniacAction.timestamp <= timedelta(hours=hours).total_seconds()) if hours is not None else True))
                     .limit(1)) > 0:
+                # print(f"{username} dropped: filtered ({hours} hours)")
                 return True
         return False
 

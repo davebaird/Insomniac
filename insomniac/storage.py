@@ -250,6 +250,13 @@ class Storage:
         """
         target, target_type = self._get_target()
         while target is not None:
+            # if self.is_user_in_blacklist(target):
+            #     print(f"@{target} dropped - blacklisted")
+            # if self.check_user_was_filtered(target):
+            #     print(f"@{target} dropped - filtered")
+            # if self.check_user_was_interacted(target):
+            #     print(f"@{target} dropped - interacted")
+
             if self.profile.name == target \
                     or self.is_user_in_blacklist(target) \
                     or self.check_user_was_filtered(target) \
