@@ -60,32 +60,40 @@ class Sleeper:
         self._set_random_sleep_range(speed, s1, s2)
 
     def update_random_sleep_range(self):
-        speed = _get_internet_speed()
-        if SPEED_ZERO <= speed <= SPEED_UGLY:
-            s1 = SPEED_ZERO
-            s2 = SPEED_UGLY
-        elif SPEED_UGLY <= speed <= SPEED_BAD:
-            s1 = SPEED_UGLY
-            s2 = SPEED_BAD
-        elif SPEED_BAD <= speed <= SPEED_GOOD:
-            s1 = SPEED_BAD
-            s2 = SPEED_GOOD
-        else:
-            s1 = SPEED_GOOD
-            s2 = SPEED_GOOD
+        try:
+            speed = _get_internet_speed()
+            if SPEED_ZERO <= speed <= SPEED_UGLY:
+                s1 = SPEED_ZERO
+                s2 = SPEED_UGLY
+            elif SPEED_UGLY <= speed <= SPEED_BAD:
+                s1 = SPEED_UGLY
+                s2 = SPEED_BAD
+            elif SPEED_BAD <= speed <= SPEED_GOOD:
+                s1 = SPEED_BAD
+                s2 = SPEED_GOOD
+            else:
+                s1 = SPEED_GOOD
+                s2 = SPEED_GOOD
 
-        self._set_random_sleep_range(speed, s1, s2)
+            self._set_random_sleep_range(speed, s1, s2)
+        except Exception as ex:
+            print(COLOR_FAIL + "Got an error while trying to measure the internet speed" + COLOR_ENDC)
+            print(COLOR_FAIL + describe_exception(ex) + COLOR_ENDC)
+            print(f"Sleep range will remain as default to be from {self.sleep_range_start:.2f} to {self.sleep_range_end:.2f} seconds")
+
 
 def _get_internet_speed():
     from insomniac.tools import speedtest
 
+    # Catch all possible exceptions from speedtest (e.g. crashed with TypeError)
+    # noinspection PyBroadException
     try:
         s = speedtest.Speedtest()
         s.get_best_server()
         s.download(threads=1)
         s.upload(threads=1)
         results_dict = s.results.dict()
-    except speedtest.SpeedtestException:
+    except Exception:
         print(COLOR_FAIL + "Failed to determine Internet speed, supposing it's zero" + COLOR_ENDC)
         return SPEED_ZERO
 

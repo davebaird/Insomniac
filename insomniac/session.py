@@ -14,6 +14,7 @@ from insomniac.softban_indicator import ActionBlockedError
 from insomniac.storage import STORAGE_ARGS, Storage, DatabaseMigrationFailedException
 from insomniac.utils import *
 from insomniac.views import UserSwitchFailedException
+import insomniac.validations as insomniac_validations
 
 sessions = Sessions()
 
@@ -66,6 +67,13 @@ class InsomniacSession(object):
             'action': 'store_true',
             "default": False
         },
+        "dont_validate_profile_existence": {
+            "help": "by default, when interacting with targets, Insomniac tries to indicate if the instagram-profile "
+                    "you are trying to interact-with truly exists. Set this flag in order to ignore those "
+                    "existence-indicators",
+            'action': 'store_true',
+            "default": False
+        },
         "debug": {
             'help': 'add this flag to run insomniac in debug mode (more verbose logs)',
             'action': 'store_true'
@@ -85,6 +93,12 @@ class InsomniacSession(object):
                     'session. Note that you must use \"--repeat\" with this argument!',
             "metavar": 'CONFIG_FILE',
             "default": None
+        },
+        "speed": {
+            'help': 'manually specify the speed setting, from 1 (slowest) to 4 (fastest)',
+            'metavar': '1-4',
+            'type': int,
+            'choices': range(1, 5)
         },
     }
 
@@ -118,6 +132,7 @@ class InsomniacSession(object):
         self.next_config_file = None
         __version__.__debug_mode__ = False
         softban_indicator.should_indicate_softban = True
+        insomniac_validations.should_validate_profile_existence = True
 
     def set_session_args(self, args):
         self.reset_params()
@@ -130,6 +145,9 @@ class InsomniacSession(object):
 
         if args.dont_indicate_softban:
             softban_indicator.should_indicate_softban = False
+
+        if args.dont_validate_profile_existence:
+            insomniac_validations.should_validate_profile_existence = False
 
         if args.username is not None:
             self.username = args.username
@@ -172,7 +190,6 @@ class InsomniacSession(object):
         if __version__.__debug_mode__:
             device_wrapper.get().start_screen_record()
         open_instagram(args.device, args.app_id)
-        sleeper.random_sleep()
         if save_profile_info:
             self.session_state.my_username, \
                 self.session_state.my_followers_count, \
@@ -219,7 +236,7 @@ class InsomniacSession(object):
             self.print_session_params(args)
 
             if args.speed is not None:
-                sleeper.set_random_sleep_range(args.speed)
+                sleeper.set_random_sleep_range(int(args.speed))
             elif not args.no_speed_check:
                 print("Checking your Internet speed to adjust the script speed, please wait for a minute...")
                 print("(use " + COLOR_BOLD + "--no-speed-check" + COLOR_ENDC + " to skip this check)")
@@ -264,8 +281,8 @@ class InsomniacSession(object):
                 if __version__.__debug_mode__:
                     raise ex
                 else:
-                    print_timeless(COLOR_FAIL + f"\nCaught an exception:\n{ex}" + COLOR_ENDC)
-                    print(COLOR_FAIL + traceback.format_exc() + COLOR_ENDC)
+                    print_timeless(COLOR_FAIL + f"\nCaught an exception:\n" + COLOR_ENDC)
+                    print(COLOR_FAIL + describe_exception(ex) + COLOR_ENDC)
                     save_crash(device_wrapper.get(), ex)
 
             self.end_session(device_wrapper)

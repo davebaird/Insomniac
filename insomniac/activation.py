@@ -29,10 +29,11 @@ class ActivationController:
                            f"{dot}{COLOR_BOLD}Filtering{COLOR_ENDC} - skip unwanted accounts by various parameters"
                            f"{dot}{COLOR_BOLD}Scrapping{COLOR_ENDC} - technique that makes interactions "
                            f"significantly safer and faster"
+                           f"{dot}{COLOR_BOLD}Warmup{COLOR_ENDC} - interact with your feed and Explore several minutes "
+                           f"before session to behave more like a human"
                            f"{dot}{COLOR_BOLD}Working hours{COLOR_ENDC} - the script will wait till specified hours "
                            f"before each session"
                            f"{dot}{COLOR_BOLD}Removing mass followers{COLOR_ENDC} - automate \"cleaning\" you account"
-                           f"{dot}{COLOR_BOLD}Analytics tool{COLOR_ENDC} - build presentation that shows your growth\n"
                            f"Activate by supporting our small team: {COLOR_BOLD}{HOST}{PATH_ACTIVATE}{COLOR_ENDC}\n")
 
     def get_extra_feature(self, module, ui=False):
@@ -42,11 +43,29 @@ class ActivationController:
                                               f"?activation_code={self.activation_code}"
                                               f"&version={__version__}")
         if code == HTTP_OK and body is not None:
-            return base64.b64decode(zlib.decompress(body))
+            extra_feature = base64.b64decode(zlib.decompress(body))
+            return self.load_extra_feature(extra_feature, module)
 
         print(COLOR_FAIL + f"Cannot get {'ui-' if ui else ''}module {module} from v{__version__}: "
                            f"{code} ({fail_reason})" + COLOR_ENDC)
         return None
+
+    def load_extra_feature(self, extra_feature, module):
+        print_debug_ui(f"Loading extra-feature-module: {module}")
+
+        import sourcedefender
+        from tempfile import TemporaryDirectory
+        with TemporaryDirectory() as tmpdir:
+            from os import path as os_path
+            target_basename = f'{module}.pye'
+            module_name = os_path.splitext(target_basename)[0]
+            save_filename = os_path.join(tmpdir, target_basename)
+            with open(save_filename, 'wb') as f:
+                f.write(extra_feature)
+            from sys import path as sys_path
+            sys_path.append(tmpdir)
+
+            return __import__(module_name).code
 
 
 def print_activation_required_to(action):

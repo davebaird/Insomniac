@@ -9,7 +9,7 @@ from insomniac.sleeper import sleeper
 from insomniac.softban_indicator import softban_indicator
 from insomniac.tools.spintax import spin
 from insomniac.utils import *
-from insomniac.views import ActionBarView, ProfileView, PostsViewList, OpenedPostView, LikersListView
+from insomniac.views import ActionBarView, ProfileView, PostsViewList, OpenedPostView, LikersListView, DialogView
 
 FOLLOWERS_BUTTON_ID_REGEX = '{0}:id/row_profile_header_followers_container' \
                             '|{1}:id/row_profile_header_container_followers'
@@ -17,9 +17,6 @@ TEXTVIEW_OR_BUTTON_REGEX = 'android.widget.TextView|android.widget.Button'
 FOLLOW_REGEX = 'Follow|Follow Back'
 ALREADY_FOLLOWING_REGEX = 'Following|Requested'
 SHOP_REGEX = 'Add Shop|View Shop'
-UNFOLLOW_REGEX = 'Unfollow'
-FOLLOWING_BUTTON_ID_REGEX = '{0}:id/row_profile_header_following_container' \
-                            '|{1}:id/row_profile_header_container_following'
 USER_AVATAR_VIEW_ID = '{0}:id/circular_image|^$'
 LISTVIEW_OR_RECYCLERVIEW_REGEX = 'android.widget.ListView|androidx.recyclerview.widget.RecyclerView'
 
@@ -74,16 +71,16 @@ def is_private_account(device):
     return not recycler_view.exists(quick=True)
 
 
-def open_user(device, username, refresh=False, on_action=None):
-    return _open_user(device, username, False, False, refresh, on_action)
+def open_user(device, username, refresh=False, deep_link_usage_percentage=0, on_action=None):
+    return _open_user(device, username, False, False, refresh, deep_link_usage_percentage, on_action)
 
 
-def open_user_followers(device, username, refresh=False, on_action=None):
-    return _open_user(device, username, True, False, refresh, on_action)
+def open_user_followers(device, username, refresh=False, deep_link_usage_percentage=0, on_action=None):
+    return _open_user(device, username, True, False, refresh, deep_link_usage_percentage, on_action)
 
 
-def open_user_followings(device, username, refresh=False, on_action=None):
-    return _open_user(device, username, False, True, refresh, on_action)
+def open_user_followings(device, username, refresh=False, deep_link_usage_percentage=0, on_action=None):
+    return _open_user(device, username, False, True, refresh, deep_link_usage_percentage, on_action)
 
 
 def iterate_over_followers(device, is_myself, iteration_callback, iteration_callback_pre_conditions,
@@ -380,39 +377,7 @@ def _open_photo_and_like_and_comment(device, row, column, do_like, do_comment, l
             to_comment = False
 
     if to_like:
-        print("Double click!")
-        post_view = device.find(
-            resourceIdMatches=OpenedPostView.POST_VIEW_ID_REGEX.format(device.app_id, device.app_id, device.app_id),
-            className='android.widget.FrameLayout'
-        )
-        post_view.double_click()
-        sleeper.random_sleep()
-        if not post_view.exists(quick=True):
-            print(COLOR_OKGREEN + "Accidentally went out of the post page, going back..." + COLOR_ENDC)
-            device.back()
-
-        # If like button is not visible, scroll down
-        like_button = device.find(resourceId=f'{device.app_id}:id/row_feed_button_like',
-                                  className='android.widget.ImageView')
-        if not like_button.exists(quick=True) or not ActionBarView.is_in_interaction_rect(like_button):
-            print("Swiping down a bit to see if is liked")
-            device.swipe(DeviceFacade.Direction.TOP)
-
-        # If double click didn't work, set like by icon click
-        try:
-            # Click only button which is under the action bar and above the tab bar.
-            # It fixes bugs with accidental back / home clicks.
-            for like_button in device.find(resourceId=f'{device.app_id}:id/row_feed_button_like',
-                                           className='android.widget.ImageView',
-                                           selected=False):
-                if ActionBarView.is_in_interaction_rect(like_button):
-                    print("Double click didn't work, click on icon.")
-                    like_button.click()
-                    sleeper.random_sleep()
-                    break
-        except DeviceFacade.JsonRpcError:
-            print("Double click worked successfully.")
-
+        OpenedPostView(device).like()
         softban_indicator.detect_action_blocked_dialog(device)
         on_like()
 
@@ -616,7 +581,8 @@ def _is_story_opened(device):
     return reel_viewer.exists()
 
 
-def _open_user(device, username, open_followers=False, open_followings=False, refresh=False, on_action=None):
+def _open_user(device, username, open_followers=False, open_followings=False,
+               refresh=False, deep_link_usage_percentage=0, on_action=None):
     if refresh:
         print("Refreshing profile status...")
         coordinator_layout = device.find(resourceId=f'{device.app_id}:id/coordinator_root_layout')
@@ -626,18 +592,31 @@ def _open_user(device, username, open_followers=False, open_followings=False, re
     if username is None:
         if open_followers:
             print("Open your followers")
-            followers_button = device.find(resourceIdMatches=FOLLOWERS_BUTTON_ID_REGEX.format(device.app_id, device.app_id))
-            followers_button.click()
+            ProfileView(device, is_own_profile=True).navigate_to_followers()
 
         if open_followings:
-            print("Open your followings")
-            followings_button = device.find(resourceIdMatches=FOLLOWING_BUTTON_ID_REGEX.format(device.app_id, device.app_id))
-            followings_button.click()
+            print("Open your following")
+            ProfileView(device, is_own_profile=True).navigate_to_following()
     else:
-        if not search_for(device, username=username, on_action=on_action):
-            return False
+        should_open_user_with_search = True
+        deep_link_usage_chance = randint(1, 100)
+        if deep_link_usage_chance <= deep_link_usage_percentage:
+            print(f"Going to open {username} using deeplink")
+            should_open_user_with_search = False
 
-        sleeper.random_sleep()
+            should_continue, is_profile_opened = _open_profile_using_deeplink(device, username)
+            if not should_continue:
+                return False
+
+            if not is_profile_opened:
+                print(f"Failed to open profile using deeplink. Using search instead")
+                should_open_user_with_search = True
+
+        if should_open_user_with_search:
+            if not search_for(device, username=username, on_action=on_action):
+                return False
+
+            sleeper.random_sleep()
 
         is_profile_empty = softban_indicator.detect_empty_profile(device)
         if is_profile_empty:
@@ -645,24 +624,65 @@ def _open_user(device, username, open_followers=False, open_followings=False, re
 
         if open_followers:
             print("Open @" + username + " followers")
-            followers_button = device.find(resourceIdMatches=FOLLOWERS_BUTTON_ID_REGEX.format(device.app_id, device.app_id))
-            followers_button.click()
+            ProfileView(device, is_own_profile=True).navigate_to_followers()
 
         if open_followings:
-            print("Open @" + username + " followings")
-            followings_button = device.find(resourceIdMatches=FOLLOWING_BUTTON_ID_REGEX.format(device.app_id, device.app_id))
-            followings_button.click()
+            print("Open @" + username + " following")
+            ProfileView(device, is_own_profile=True).navigate_to_following()
 
     return True
 
 
+def _open_profile_using_deeplink(device, profile_name):
+    is_profile_opened = False
+    should_continue = True
+
+    profile_url = f"https://www.instagram.com/{profile_name}/"
+    if not open_instagram_with_url(device.device_id, device.app_id, profile_url):
+        return should_continue, is_profile_opened
+
+    sleeper.random_sleep()
+
+    user_not_found_text = device.find(resourceId=f'{device.app_id}:id/no_found_text',
+                                      className='android.widget.TextView')
+    if user_not_found_text.exists(quick=True):
+        print(COLOR_FAIL + f"Seems like profile {profile_name} is not exists. Pressing back." + COLOR_ENDC)
+        should_continue = False
+        is_profile_opened = False
+        device.back()
+    else:
+        should_continue = True
+        is_profile_opened = True
+
+    return should_continue, is_profile_opened
+
+
+def iterate_over_my_followers(device, iteration_callback, iteration_callback_pre_conditions):
+    _iterate_over_my_followers_or_followings(device,
+                                             iteration_callback,
+                                             iteration_callback_pre_conditions,
+                                             is_followers=True)
+
+
 def iterate_over_my_followings(device, iteration_callback, iteration_callback_pre_conditions):
+    _iterate_over_my_followers_or_followings(device,
+                                             iteration_callback,
+                                             iteration_callback_pre_conditions,
+                                             is_followers=False)
+
+
+def _iterate_over_my_followers_or_followings(device,
+                                             iteration_callback,
+                                             iteration_callback_pre_conditions,
+                                             is_followers):
+    entities_name = "followers" if is_followers else "followings"
+
     # Wait until list is rendered
     device.find(resourceId=f'{device.app_id}:id/follow_list_container',
                 className='android.widget.LinearLayout').wait()
 
     while True:
-        print("Iterate over visible followings")
+        print(f"Iterate over visible {entities_name}")
         sleeper.random_sleep()
         screen_iterated_followings = 0
 
@@ -688,7 +708,7 @@ def iterate_over_my_followings(device, iteration_callback, iteration_callback_pr
             if to_continue:
                 sleeper.random_sleep()
             else:
-                print(COLOR_OKBLUE + "Stopping iteration over followings" + COLOR_ENDC)
+                print(COLOR_OKBLUE + f"Stopping iteration over {entities_name}" + COLOR_ENDC)
                 return
 
         if screen_iterated_followings > 0:
@@ -697,7 +717,7 @@ def iterate_over_my_followings(device, iteration_callback, iteration_callback_pr
                                     className='android.widget.ListView')
             list_view.scroll(DeviceFacade.Direction.BOTTOM)
         else:
-            print(COLOR_OKGREEN + "No followings were iterated, finish." + COLOR_ENDC)
+            print(COLOR_OKGREEN + f"No {entities_name} were iterated, finish." + COLOR_ENDC)
             return
 
 
@@ -724,12 +744,17 @@ def sort_followings_by_date(device, sort_order):
         return
 
     if sort_order == FollowingsSortOrder.DEFAULT:
-        sort_options_recycler_view.child(index=0).child(index=1).click()
+        sort_item = sort_options_recycler_view.child(index=0)
     elif sort_order == FollowingsSortOrder.LATEST:
-        sort_options_recycler_view.child(index=1).child(index=1).click()
+        sort_item = sort_options_recycler_view.child(index=1)
     else:  # EARLIEST
-        sort_options_recycler_view.child(index=2).child(index=1).click()
+        sort_item = sort_options_recycler_view.child(index=2)
 
+    if not sort_item.exists():
+        print(COLOR_FAIL + f"Cannot find an option to sort by {sort_order.name}" + COLOR_ENDC)
+        device.back()
+        return
+    sort_item.click()
 
 def do_unfollow(device, my_username, username, storage, check_if_is_follower, username_view, follow_status_button_view, on_action):
     """
@@ -744,7 +769,7 @@ def do_unfollow(device, my_username, username, storage, check_if_is_follower, us
         print("Unfollowing a profile directly from the following list.")
         follow_status_button_view.click()
     else:
-        print("Unfollowing a profile from his profile page.")
+        print("Unfollowing a profile from their profile page.")
         username_view.click()
         on_action(GetProfileAction(user=username))
         sleeper.random_sleep()
@@ -755,12 +780,14 @@ def do_unfollow(device, my_username, username, storage, check_if_is_follower, us
             device.back()
             return False
 
-        if check_if_is_follower and _check_is_follower(device, username, my_username):
-            print("Skip @" + username + ". This user is following you.")
-            storage.update_follow_status(username, True, True)
-            print("Back to the followings list.")
-            device.back()
-            return False
+        if check_if_is_follower:
+            if _check_is_follower(device, username, my_username):
+                print("Skip @" + username + ". This user is following you.")
+                storage.update_follow_status(username, is_follow_me=True, do_i_follow_him=True)
+                print("Back to the followings list.")
+                device.back()
+                return False
+            storage.update_follow_status(username, is_follow_me=False, do_i_follow_him=True)
 
         unfollow_button = device.find(classNameMatches=TEXTVIEW_OR_BUTTON_REGEX,
                                       clickable=True,
@@ -773,21 +800,18 @@ def do_unfollow(device, my_username, username, storage, check_if_is_follower, us
 
         print(f"Unfollowing @{username}...")
         unfollow_button.click()
-
         sleeper.random_sleep()
 
-        confirm_unfollow_button = device.find(resourceId=f'{device.app_id}:id/follow_sheet_unfollow_row',
-                                              className='android.widget.TextView')
-        if not confirm_unfollow_button.exists():
-            print(COLOR_FAIL + "Cannot confirm unfollow." + COLOR_ENDC)
-            save_crash(device)
-            device.back()
-            return False
-        confirm_unfollow_button.click()
+    unfollow_confirmed = False
+    dialog_view = DialogView(device)
+    if dialog_view.is_visible():
+        print("Confirming unfollow...")
+        unfollow_confirmed = dialog_view.click_unfollow()
 
-    sleeper.random_sleep()
-    _close_confirm_dialog_if_shown(device)
-    softban_indicator.detect_action_blocked_dialog(device)
+    if unfollow_confirmed:
+        sleeper.random_sleep()
+    else:
+        softban_indicator.detect_action_blocked_dialog(device)
 
     if need_to_go_back_to_list:
         print("Back to the followings list.")
@@ -809,11 +833,30 @@ def open_likers(device):
     return posts_view_list.open_likers()
 
 
+def interact_with_feed(navigate_to_feed, should_continue, interact_with_feed_post):
+    posts_views_list = navigate_to_feed()
+    if posts_views_list is None:
+        return False
+
+    while True:
+        if not posts_views_list.is_visible():
+            print(COLOR_FAIL + "Went away from posts list, going back..." + COLOR_ENDC)
+            posts_views_list = navigate_to_feed()
+            if posts_views_list is None:
+                return False
+
+        if not interact_with_feed_post(posts_views_list) or not should_continue():
+            print("Stopping interaction with feed...")
+            return True
+
+        print_debug("Scrolling down...")
+        posts_views_list.scroll_down()
+        sleeper.random_sleep()
+
+
 def _check_is_follower(device, username, my_username):
     print(COLOR_OKGREEN + "Check if @" + username + " is following you." + COLOR_ENDC)
-    following_container = device.find(resourceIdMatches=FOLLOWING_BUTTON_ID_REGEX.format(device.app_id, device.app_id))
-    following_container.click()
-
+    ProfileView(device, is_own_profile=True).navigate_to_following()
     sleeper.random_sleep()
 
     is_list_empty = softban_indicator.detect_empty_list(device)
@@ -832,45 +875,6 @@ def _check_is_follower(device, username, my_username):
         print("Back to the profile.")
         device.back()
         return result
-
-
-def _close_confirm_dialog_if_shown(device):
-    if not _close_confirm_dialog_by_version(device, 2):
-        _close_confirm_dialog_by_version(device, 1)
-
-
-def _close_confirm_dialog_by_version(device, version):
-    if version == 1:
-        dialog_root_view = device.find(resourceId=f'{device.app_id}:id/dialog_root_view',
-                                       className='android.widget.FrameLayout')
-    elif version == 2:
-        dialog_root_view = device.find(resourceId=f'{device.app_id}:id/dialog_container',
-                                       className='android.view.ViewGroup')
-    else:
-        raise ValueError("Close unfollow confrim dialog for vis not exists.")
-
-    if not dialog_root_view.exists(quick=True):
-        return False
-
-    # Avatar existence is the way to distinguish confirm dialog from block dialog
-    user_avatar_view = device.find(resourceIdMatches=USER_AVATAR_VIEW_ID.format(device.app_id),
-                                   className='android.widget.ImageView')
-    if not user_avatar_view.exists(quick=True):
-        return False
-
-    print(COLOR_OKGREEN + "Dialog shown, confirm unfollowing." + COLOR_ENDC)
-    sleeper.random_sleep()
-    if version == 1:
-        unfollow_button = dialog_root_view.child(resourceId=f'{device.app_id}:id/primary_button',
-                                                 classNameMatches=TEXTVIEW_OR_BUTTON_REGEX)
-    elif version == 2:
-        unfollow_button = dialog_root_view.child(resourceId=f'{device.app_id}:id/primary_button',
-                                                 classNameMatches=TEXTVIEW_OR_BUTTON_REGEX,
-                                                 textMatches=UNFOLLOW_REGEX)
-
-    unfollow_button.click()
-    sleeper.random_sleep()
-    return True
 
 
 def _get_action_bar(device):
