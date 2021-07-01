@@ -15,7 +15,7 @@ from datetime import datetime
 # For selecting page elements, see docs here under heading "Selector":
 #   https://github.com/openatx/uiautomator2
 
-WAIT_EXISTS = 5
+WAIT_EXISTS = 1
 
 
 def _printfail(msg):
@@ -124,7 +124,8 @@ def start_post(device, dump_ui):
     print("Get home_view, prepare to post")
     TabBarView(device).navigate_to_home()
 
-    post_button = _maybe_find_wait_exists(device, label='post_button_normal',
+    # button version 1
+    post_button = _maybe_find_wait_exists(device, label='post_button_alt.1',
                                           resourceId='com.instagram.android:id/action_bar_left_button',
                                           className='android.widget.ImageView',
                                           description='Camera')
@@ -133,25 +134,55 @@ def start_post(device, dump_ui):
         post_button.click()
         return True
 
-    # on sailing.barcelona, the button starts out as a camera button, we need to click it then come back, it will then have changed to the post button
-    post_button = _find_wait_exists(device, dump_ui, 'post_button_alt.1',
+    # OK, that was the easy one, but we didn't find it
+
+    # button version 2
+    # on sailing.barcelona, the button starts out as a camera button, we need to click it then come
+    # back, it will then have changed to the post button
+    post_button = _maybe_find_wait_exists(device, label='post_button_alt.2.1',
                                     resourceId='com.instagram.android:id/action_bar_left_button',
                                     className='android.widget.Button',
                                     description='Camera')
-    if post_button is None:
-        return
 
-    post_button.click()
-    sleeper.random_sleep()
-    device.back()
+    if post_button is not None:
+        # go to the camera, then come back
+        post_button.click()
+        sleeper.random_sleep()
+        device.back()
 
-    post_button2 = _find_wait_exists(device, dump_ui, 'post_button_alt.2',
+        # find the same button, but now it doesn't go to camera, it goes to start post (FFS)
+        post_button2 = _find_wait_exists(device, dump_ui, 'post_button_alt.2.2',
                                      resourceId='com.instagram.android:id/action_bar_left_button',
                                      className='android.widget.Button',
                                      description='Camera')
-    post_button2.click()
+        post_button2.click()
+        return True
 
-    return True
+    # button version 3
+    # this thing appeared on boutique.hotels.bcn, same thing, the button starts out as a camera button,
+    # we need to click it then come back, it will then have changed to the post button
+    post_button = _find_wait_exists(device, dump_ui, 'post_button_alt.3.1',
+                                        resourceId='com.instagram.android:id/creation_tab',
+                                        className='android.widget.FrameLayout',
+                                        description='Camera')
+
+    if post_button is not None:
+        # go to the camera, then come back
+        post_button.click()
+        sleeper.random_sleep()
+        device.back()
+
+        # find the same button, but now it doesn't go to camera, it goes to start post (FFS)
+        post_button2 = _find_wait_exists(device, dump_ui, 'post_button_alt.3.2',
+                                        resourceId='com.instagram.android:id/creation_tab',
+                                        className='android.widget.FrameLayout',
+                                        description='Camera')
+        post_button2.click()
+        return True
+
+    else:
+        # give up
+        return
 
 
 def select_image(device, dump_ui):
