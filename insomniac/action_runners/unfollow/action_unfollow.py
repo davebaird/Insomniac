@@ -39,7 +39,7 @@ def unfollow(device, on_action, storage, unfollow_restriction, sort_order, sessi
             following_status = storage.get_following_status(following_name)
             follow_status_from_row = follow_status_button_view.get_text()
             print("Follow-status-button text: " + follow_status_from_row + ".")
-            if follow_status_from_row in FOLLOW_REGEX.split('|') or following_status == FollowingStatus.UNFOLLOWED:
+            if follow_status_from_row in FOLLOW_REGEX.split('|'): # or following_status == FollowingStatus.UNFOLLOWED:
                 print("Skip @" + following_name + ". Following status: " + FollowingStatus.UNFOLLOWED.name
                       + "(already been unfollowed by the bot...)")
                 return False

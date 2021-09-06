@@ -37,6 +37,7 @@ class SessionState:
         self.my_username = None
         self.my_followers_count = None
         self.my_following_count = None
+        self.my_posts_count = None
         self.totalInteractions = {}
         self.successfulInteractions = {}
         self.totalFollowed = {}

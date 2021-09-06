@@ -761,7 +761,7 @@ def do_unfollow(device, my_username, username, storage, check_if_is_follower, us
     :return: whether unfollow was successful
     """
     need_to_go_back_to_list = True
-    unfollow_from_list_chance = randint(1, 100)
+    unfollow_from_list_chance = 100 # randint(1, 100)
 
     if follow_status_button_view is not None and not check_if_is_follower and unfollow_from_list_chance > 50:
         # We can unfollow directly here instead of getting inside to profile
@@ -807,6 +807,14 @@ def do_unfollow(device, my_username, username, storage, check_if_is_follower, us
     if dialog_view.is_visible():
         print("Confirming unfollow...")
         unfollow_confirmed = dialog_view.click_unfollow()
+
+        # drb - applied https://github.com/alexal1/Insomniac/issues/362
+        sleeper.random_sleep()
+        confirmation_dialog_view = DialogView(device)
+        if confirmation_dialog_view.is_visible():
+            print("2nd stage confirmation unfollow...")
+            unfollow_confirmed = confirmation_dialog_view.click_unfollow()
+            sleeper.random_sleep()
 
     if unfollow_confirmed:
         sleeper.random_sleep()

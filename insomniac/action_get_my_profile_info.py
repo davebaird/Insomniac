@@ -21,7 +21,7 @@ def get_my_profile_info(device, username):
 
         ActionBarView.create_instance(device)
 
-        username, followers, following = profile_view.get_profile_info(swipe_up_if_needed=True)
+        username, followers, following, posts = profile_view.get_profile_info(swipe_up_if_needed=True)
     except UserSwitchFailedException as e:
         raise e
     except Exception as e:
@@ -45,7 +45,7 @@ def get_my_profile_info(device, username):
 
         ActionBarView.create_instance(device)
 
-        username, followers, following = profile_view.get_profile_info(swipe_up_if_needed=True)
+        username, followers, following, posts = profile_view.get_profile_info(swipe_up_if_needed=True)
 
     report_string = ""
     if username:
@@ -56,8 +56,10 @@ def get_my_profile_info(device, username):
         if following is not None:
             report_string += " and " + str(following) + " followings"
         report_string += " so far."
+        if posts is not None:
+            report_string += " Posts: " + str(posts)
 
     if not report_string == "":
         print(report_string)
 
-    return username, followers, following
+    return username, followers, following, posts

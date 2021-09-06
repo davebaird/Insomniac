@@ -1044,19 +1044,20 @@ class ProfileView(ActionBarView):
         return None
 
     def get_profile_info(self, swipe_up_if_needed=False):
-        username, followers, following = self._get_profile_info(swipe_up_if_needed)
+        username, followers, following, posts = self._get_profile_info(swipe_up_if_needed)
         if (username is None or followers is None or following is None) and not self.is_visible():
             print(COLOR_FAIL + "Oops, wrong tab was opened accidentally. Let's try again." + COLOR_ENDC)
             TabBarView(self.device).navigate_to_profile()
-            username, followers, following = self._get_profile_info(swipe_up_if_needed)
-        return username, followers, following
+            username, followers, following, posts = self._get_profile_info(swipe_up_if_needed)
+        return username, followers, following, posts
 
     def _get_profile_info(self, swipe_up_if_needed):
         username = self.get_username()
         followers = self.get_followers_count(swipe_up_if_needed=swipe_up_if_needed) or 0
         following = self.get_following_count(swipe_up_if_needed=swipe_up_if_needed) or 0
+        posts = self.get_posts_count() or 0
 
-        return username, followers, following
+        return username, followers, following, posts
 
     def get_profile_biography(self):
         try:

@@ -193,7 +193,8 @@ class InsomniacSession(object):
         if save_profile_info:
             self.session_state.my_username, \
                 self.session_state.my_followers_count, \
-                self.session_state.my_following_count = get_my_profile_info(device_wrapper.get(), self.username)
+                self.session_state.my_following_count, \
+                self.session_state.my_posts_count = get_my_profile_info(device_wrapper.get(), self.username)
 
         return self.session_state
 

@@ -87,9 +87,10 @@ def _fail(device, dump_ui, label, msg=None):
 
 # copied from utils.py
 def _get_logs_dir_name():
-    if globals.is_ui_process:
-        return UI_LOGS_DIR_NAME
-    return ENGINE_LOGS_DIR_NAME
+    return 'logs'
+    # if globals.is_ui_process:
+    #     return UI_LOGS_DIR_NAME
+    # return ENGINE_LOGS_DIR_NAME
 
 
 # Adapted from utils.py _get_log_file_name()
