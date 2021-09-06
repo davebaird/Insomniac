@@ -59,7 +59,7 @@ class InstagramProfile(InsomniacModel):
             session_info.end = datetime.now()
             session_info.save()
 
-    def add_session(self, app_id, app_version, args, profile_status, followers_count, following_count, start, end):
+    def add_session(self, app_id, app_version, args, profile_status, followers_count, following_count, posts_count, start, end):
         """
         For migration only!
         """
@@ -67,7 +67,8 @@ class InstagramProfile(InsomniacModel):
             profile_info = InstagramProfileInfo.create(profile=self,
                                                        status=profile_status,
                                                        followers=followers_count,
-                                                       following=following_count)
+                                                       following=following_count,
+                                                       posts=posts_count)
 
             SessionInfo.create(app_id=app_id,
                                app_version=app_version,
@@ -76,7 +77,7 @@ class InstagramProfile(InsomniacModel):
                                start=start,
                                end=end)
 
-    def update_profile_info(self, profile_status, followers_count, following_count):
+    def update_profile_info(self, profile_status, followers_count, following_count, posts_count):
         """
         Create a new InstagramProfileInfo record
 
@@ -87,7 +88,8 @@ class InstagramProfile(InsomniacModel):
             InstagramProfileInfo.create(profile=self,
                                         status=profile_status,
                                         followers=followers_count,
-                                        following=following_count)
+                                        following=following_count,
+                                        posts=posts_count)
 
     def log_get_profile_action(self, session_id, username, task_id=insomniac_globals.task_id, execution_id=insomniac_globals.execution_id, timestamp=None):
         """
@@ -452,6 +454,7 @@ class InstagramProfileInfo(InsomniacModel):
     status = TextField()
     followers = BigIntegerField(null=True)
     following = BigIntegerField(null=True)
+    posts = BigIntegerField(null=True)
     timestamp = TimestampField(default=datetime.now)
 
     class Meta:

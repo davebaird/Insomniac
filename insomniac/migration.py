@@ -171,6 +171,7 @@ def migrate_from_sql_to_peewee(my_username):
             ProfileStatus.VALID,
             session["followers"],
             session["following"],
+            session["posts"],
             datetime.strptime(session["start_time"], '%Y-%m-%d %H:%M:%S.%f') if session["start_time"] is not None else datetime.now(),
             datetime.strptime(session["finish_time"], '%Y-%m-%d %H:%M:%S.%f') if session["finish_time"] is not None else None
         )
