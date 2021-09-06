@@ -97,7 +97,7 @@ def _get_logs_dir_name():
 # Using this so the logfile and ui files sort together in directory listing
 def _get_log_file_prefix():
     curr_time = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-    log_prefix = f"insomniac_log-{curr_time}{'-'+globals.execution_id if globals.execution_id != '' else ''}"
+    log_prefix = f"insomniac_log-{curr_time}{'-'+insomniac_globals.execution_id if insomniac_globals.execution_id != '' else ''}"
     return log_prefix
 
 
@@ -141,9 +141,9 @@ def start_post(device, dump_ui):
     # on sailing.barcelona, the button starts out as a camera button, we need to click it then come
     # back, it will then have changed to the post button
     post_button = _maybe_find_wait_exists(device, label='post_button_alt.2.1',
-                                    resourceId='com.instagram.android:id/action_bar_left_button',
-                                    className='android.widget.Button',
-                                    description='Camera')
+                                          resourceId='com.instagram.android:id/action_bar_left_button',
+                                          className='android.widget.Button',
+                                          description='Camera')
 
     if post_button is not None:
         # go to the camera, then come back
@@ -153,9 +153,9 @@ def start_post(device, dump_ui):
 
         # find the same button, but now it doesn't go to camera, it goes to start post (FFS)
         post_button2 = _find_wait_exists(device, dump_ui, 'post_button_alt.2.2',
-                                     resourceId='com.instagram.android:id/action_bar_left_button',
-                                     className='android.widget.Button',
-                                     description='Camera')
+                                         resourceId='com.instagram.android:id/action_bar_left_button',
+                                         className='android.widget.Button',
+                                         description='Camera')
         post_button2.click()
         return True
 
@@ -163,9 +163,9 @@ def start_post(device, dump_ui):
     # this thing appeared on boutique.hotels.bcn, same thing, the button starts out as a camera button,
     # we need to click it then come back, it will then have changed to the post button
     post_button = _find_wait_exists(device, dump_ui, 'post_button_alt.3.1',
-                                        resourceId='com.instagram.android:id/creation_tab',
-                                        className='android.widget.FrameLayout',
-                                        description='Camera')
+                                    resourceId='com.instagram.android:id/creation_tab',
+                                    className='android.widget.FrameLayout',
+                                    description='Camera')
 
     if post_button is not None:
         # go to the camera, then come back
@@ -175,9 +175,9 @@ def start_post(device, dump_ui):
 
         # find the same button, but now it doesn't go to camera, it goes to start post (FFS)
         post_button2 = _find_wait_exists(device, dump_ui, 'post_button_alt.3.2',
-                                        resourceId='com.instagram.android:id/creation_tab',
-                                        className='android.widget.FrameLayout',
-                                        description='Camera')
+                                         resourceId='com.instagram.android:id/creation_tab',
+                                         className='android.widget.FrameLayout',
+                                         description='Camera')
         post_button2.click()
         return True
 
@@ -469,16 +469,17 @@ def check_posted(device, session_state, dump_ui):
     #     print("  ... swipe down...")
     #     device.swipe(DeviceFacade.Direction.BOTTOM, scale=0.25)
 
-
-
-
     # -----
     # check the outcome - if we get a post with these characteristics, Instagram has accepted the post
     caption_regex = f'^{session_state.my_username}'
-    posted_caption = _find_wait_exists(device, dump_ui, 'posted_caption',
-                                       resourceId='com.instagram.android:id/row_feed_comment_textview_layout',
-                                       className='com.instagram.ui.widget.textview.IgTextLayoutView',
-                                       textMatches=caption_regex)
+    # posted_caption = _find_wait_exists(device, dump_ui, 'posted_caption',
+    #                                    resourceId='com.instagram.android:id/row_feed_comment_textview_layout',
+    #                                    className='com.instagram.ui.widget.textview.IgTextLayoutView',
+    #                                    textMatches=caption_regex)
+    posted_caption = _maybe_find_wait_exists(device, label='posted_caption',
+                                             resourceId='com.instagram.android:id/row_feed_comment_textview_layout',
+                                             className='com.instagram.ui.widget.textview.IgTextLayoutView',
+                                             textMatches=caption_regex)
 
     logdir = _get_logs_dir_name()
     prefix_with_ts = _get_log_file_prefix()

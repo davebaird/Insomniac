@@ -158,9 +158,9 @@ class Storage:
             print(f"Profiles to interact from scrapping: {count_from_scrapping}")
 
     @database_api
-    def start_session(self, app_id, app_version, args, followers_count, following_count):
+    def start_session(self, app_id, app_version, args, followers_count, following_count, posts_count):
         session_id = self.profile.start_session(app_id, app_version, args, ProfileStatus.VALID,
-                                                followers_count, following_count)
+                                                followers_count, following_count, posts_count)
         return session_id
 
     @database_api

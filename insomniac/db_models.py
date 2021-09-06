@@ -31,7 +31,7 @@ class InstagramProfile(InsomniacModel):
     class Meta:
         db_table = 'instagram_profiles'
 
-    def start_session(self, app_id, app_version, args, profile_status, followers_count, following_count) -> uuid.UUID:
+    def start_session(self, app_id, app_version, args, profile_status, followers_count, following_count, posts_count) -> uuid.UUID:
         """
         Create InstagramProfileInfo record
         Create SessionInfo record
@@ -41,7 +41,8 @@ class InstagramProfile(InsomniacModel):
             profile_info = InstagramProfileInfo.create(profile=self,
                                                        status=profile_status,
                                                        followers=followers_count,
-                                                       following=following_count)
+                                                       following=following_count,
+                                                       posts=posts_count)
 
             session = SessionInfo.create(app_id=app_id,
                                          app_version=app_version,
