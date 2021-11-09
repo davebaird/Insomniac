@@ -88,7 +88,8 @@ class InsomniacSessionState(SessionState):
 
     def start_session_impl(self):
         session_id = self.storage.start_session(self.args, self.app_id, self.app_version,
-                                                self.my_followers_count, self.my_following_count)
+                                                self.my_followers_count, self.my_following_count,
+                                                self.my_posts_count)
         if session_id is not None:
             self.id = session_id
 

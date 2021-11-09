@@ -65,9 +65,9 @@ class Storage:
         self.my_username = my_username
         self.profile = get_ig_profile_by_profile_name(my_username)
 
-    def start_session(self, args, app_id=None, app_version=None, followers_count=None, following_count=None):
+    def start_session(self, args, app_id=None, app_version=None, followers_count=None, following_count=None, posts_count=None):
         session_id = self.profile.start_session(app_id, app_version, args, ProfileStatus.VALID.value,
-                                                followers_count, following_count)
+                                                followers_count, following_count, posts_count)
         return session_id
 
     def end_session(self, session_id):
@@ -252,11 +252,13 @@ class InsomniacStorage(Storage):
     def _update_profile_status(profile, status):
         followers_count = 0
         following_count = 0
+        posts_count = 0
         latest_profile_info = profile.get_latsest_profile_info()
         if latest_profile_info is not None:
             followers_count = latest_profile_info.followers
             following_count = latest_profile_info.following
-        profile.update_profile_info(status, followers_count, following_count)
+            posts_count = latest_profile_info.posts
+        profile.update_profile_info(status, followers_count, following_count, posts_count)
 
     def get_target(self, session_id):
         """
