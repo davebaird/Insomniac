@@ -370,6 +370,14 @@ def add_tags(device, tagnames, dump_ui):
                                                  resourceId='com.instagram.android:id/row_search_user_username',
                                                  className='android.widget.TextView',
                                                  text=tagnames[0])
+
+        if selected_user_button is None:
+            print(f"No selected_user_button for '{tagnames[0]}' yet - will wait one more time for it")
+            selected_user_button = _find_wait_exists(device, dump_ui, 'selected_user_button',
+                                                 resourceId='com.instagram.android:id/row_search_user_username',
+                                                 className='android.widget.TextView',
+                                                 text=tagnames[0])
+
         if selected_user_button is None:
             return
         selected_user_button.click()
