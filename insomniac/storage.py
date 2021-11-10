@@ -260,6 +260,30 @@ class InsomniacStorage(Storage):
             posts_count = latest_profile_info.posts
         profile.update_profile_info(status, followers_count, following_count, posts_count)
 
+    def increment_posts_count(self):
+        followers_count = 0
+        following_count = 0
+        posts_count = 0
+        status = None
+        latest_profile_info = self.profile.get_latsest_profile_info()
+
+        if latest_profile_info is not None:
+            followers_count = latest_profile_info.followers
+            following_count = latest_profile_info.following
+            posts_count = latest_profile_info.posts + 1
+
+            if latest_profile_info.status == ProfileStatus.VALID.value:
+                status = ProfileStatus.VALID
+            else:
+                raise ValueError(f"Expected profile status to be 'valid': got {latest_profile_info.status}" )
+
+            self.profile.update_profile_info(status, followers_count, following_count, posts_count)
+
+        else:
+            raise RuntimeError("Expected profile data to be populated but got None")
+
+
+
     def get_target(self, session_id):
         """
         Get a target from args (users/posts) -> OR from targets file (users/posts) -> OR from scrapping (only users).

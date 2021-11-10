@@ -53,8 +53,8 @@ def get_my_profile_info(device, username):
         if following is not None:
             report_string += " and " + str(following) + " followings"
         report_string += " so far."
-        if posts is not None:
-            report_string += " Posts: " + str(posts)
+    if posts is not None:
+        report_string += " Posts: " + str(posts)
 
     if not report_string == "":
         print(report_string)

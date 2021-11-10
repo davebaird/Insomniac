@@ -2,6 +2,7 @@ from insomniac.views import TabBarView, case_insensitive_re
 from insomniac.sleeper import sleeper
 from insomniac.utils import *
 from insomniac.device_facade import DeviceFacade
+from insomniac.action_get_my_profile_info import get_my_profile_info
 import os
 import time
 # import json
@@ -372,11 +373,12 @@ def add_tags(device, tagnames, dump_ui):
                                                  text=tagnames[0])
 
         if selected_user_button is None:
-            print(f"No selected_user_button for '{tagnames[0]}' yet - will wait one more time for it")
+            print(
+                f"No selected_user_button for '{tagnames[0]}' yet - will wait one more time for it")
             selected_user_button = _find_wait_exists(device, dump_ui, 'selected_user_button',
-                                                 resourceId='com.instagram.android:id/row_search_user_username',
-                                                 className='android.widget.TextView',
-                                                 text=tagnames[0])
+                                                     resourceId='com.instagram.android:id/row_search_user_username',
+                                                     className='android.widget.TextView',
+                                                     text=tagnames[0])
 
         if selected_user_button is None:
             return
@@ -471,52 +473,81 @@ def do_post(device, dump_ui):
 
 
 def check_posted(device, session_state, dump_ui):
-    # print("Scroll up...")
-    # # Remember: to scroll up we need to swipe down :)
-    # for _ in range(3):
-    #     print("  ... swipe down...")
-    #     device.swipe(DeviceFacade.Direction.BOTTOM, scale=0.25)
+    posts_count_before = session_state.my_posts_count
 
-    # -----
-    # check the outcome - if we get a post with these characteristics, Instagram has accepted the post
-    caption_regex = f'^{session_state.my_username}'
-    # posted_caption = _find_wait_exists(device, dump_ui, 'posted_caption',
-    #                                    resourceId='com.instagram.android:id/row_feed_comment_textview_layout',
-    #                                    className='com.instagram.ui.widget.textview.IgTextLayoutView',
-    #                                    textMatches=caption_regex)
-    posted_caption = _maybe_find_wait_exists(device, label='posted_caption',
-                                             resourceId='com.instagram.android:id/row_feed_comment_textview_layout',
-                                             className='com.instagram.ui.widget.textview.IgTextLayoutView',
-                                             textMatches=caption_regex)
+    # This updates the data in the session. When post() returns, the database is
+    # also updated with the new posts count.
+    session_state.my_username, \
+        session_state.my_followers_count, \
+        session_state.my_following_count, \
+        session_state.my_posts_count = get_my_profile_info(
+            device, session_state.my_username)
+
+    posts_count_after = session_state.my_posts_count
 
     logdir = _get_logs_dir_name()
     prefix_with_ts = _get_log_file_prefix()
 
-    # ! POSSIBLE ISSUE
-    # There are at least 2 ways IG rejects a post, they're both detected correctly here, so far.
-    # Rejection mode 1: Ig may show the post, but the caption isn't visible, so not detected, and therefore the rejection IS detected. This might
-    # however be a quirk of the device I'm using - maybe if it had a bigger screen,
-    # the caption would be visible. In that case the question is whether the caption
-    # still appears in the row_feed_comment_textview_layout element.
-    # Rejection mode 2: IG pops up a big full-screen warning.
-    # _wait_exists(posted_caption)
-    # if posted_caption.exists():
-    if posted_caption is not None:
+    if posts_count_after > posts_count_before:
         _printok("SUCCESS!")
         if dump_ui is True:
             _dump_ui(device, f'{prefix_with_ts}-final-success', logdir)
         return True
     else:
-        _printokblue(
-            "UNKNOWN: can't identify successful post yet")
+        _printfail(
+            "FAIL: posts count did not increase")
         if dump_ui is True:
-            _dump_ui(device, f'{prefix_with_ts}-final-unknown', logdir)
-        return True
+            _dump_ui(device, f'{prefix_with_ts}-final-fail', logdir)
+        return False
 
 
-def _debug_end():
-    _printokblue("DEBUG HALT")
-    time.sleep(10)
+# def check_posted(device, session_state, dump_ui):
+#     # print("Scroll up...")
+#     # # Remember: to scroll up we need to swipe down :)
+#     # for _ in range(3):
+#     #     print("  ... swipe down...")
+#     #     device.swipe(DeviceFacade.Direction.BOTTOM, scale=0.25)
+
+#     # -----
+#     # check the outcome - if we get a post with these characteristics, Instagram has accepted the post
+#     caption_regex = f'^{session_state.my_username}'
+#     # posted_caption = _find_wait_exists(device, dump_ui, 'posted_caption',
+#     #                                    resourceId='com.instagram.android:id/row_feed_comment_textview_layout',
+#     #                                    className='com.instagram.ui.widget.textview.IgTextLayoutView',
+#     #                                    textMatches=caption_regex)
+#     posted_caption = _maybe_find_wait_exists(device, label='posted_caption',
+#                                              resourceId='com.instagram.android:id/row_feed_comment_textview_layout',
+#                                              className='com.instagram.ui.widget.textview.IgTextLayoutView',
+#                                              textMatches=caption_regex)
+
+#     logdir = _get_logs_dir_name()
+#     prefix_with_ts = _get_log_file_prefix()
+
+#     # ! POSSIBLE ISSUE
+#     # There are at least 2 ways IG rejects a post, they're both detected correctly here, so far.
+#     # Rejection mode 1: Ig may show the post, but the caption isn't visible, so not detected, and therefore the rejection IS detected. This might
+#     # however be a quirk of the device I'm using - maybe if it had a bigger screen,
+#     # the caption would be visible. In that case the question is whether the caption
+#     # still appears in the row_feed_comment_textview_layout element.
+#     # Rejection mode 2: IG pops up a big full-screen warning.
+#     # _wait_exists(posted_caption)
+#     # if posted_caption.exists():
+#     if posted_caption is not None:
+#         _printok("SUCCESS!")
+#         if dump_ui is True:
+#             _dump_ui(device, f'{prefix_with_ts}-final-success', logdir)
+#         return True
+#     else:
+#         _printokblue(
+#             "UNKNOWN: can't identify successful post yet")
+#         if dump_ui is True:
+#             _dump_ui(device, f'{prefix_with_ts}-final-unknown', logdir)
+#         return True
+
+
+# def _debug_end():
+#     _printokblue("DEBUG HALT")
+#     time.sleep(10)
 
 
 def post(device, on_action, storage, session_state, action_status, is_limit_reached, caption, tagnames, location, dump_ui, image_path_on_device):

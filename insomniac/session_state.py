@@ -54,6 +54,7 @@ class InsomniacSessionState(SessionState):
     my_username = None
     my_followers_count = None
     my_following_count = None
+    my_posts_count = None
     totalInteractions = {}
     successfulInteractions = {}
     totalFollowed = {}
