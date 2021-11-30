@@ -274,8 +274,9 @@ class InsomniacSession(Session):
         if __version__.__debug_mode__:
             device_wrapper.get().stop_screen_record()
         print_copyright()
-        self.session_state.end_session()
-        print_timeless(COLOR_REPORT + "-------- FINISH: " + str(self.session_state.finishTime) + " --------" + COLOR_ENDC)
+        if self.session_state is not None: # it's none if running Login action
+            self.session_state.end_session()
+            print_timeless(COLOR_REPORT + "-------- FINISH: " + str(self.session_state.finishTime) + " --------" + COLOR_ENDC)
 
         print_full_report(self.sessions)
         print_timeless("")
@@ -310,12 +311,20 @@ class InsomniacSession(Session):
             self.limits_mgr.set_limits(args)
 
             try:
-                self.prepare_session_state(args, device_wrapper, app_version, save_profile_info=True)
-                migrate_from_json_to_sql(self.session_state.my_username)
-                migrate_from_sql_to_peewee(self.session_state.my_username)
-                self.storage = InsomniacStorage(self.session_state.my_username, args)
-                self.session_state.set_storage_layer(self.storage)
-                self.session_state.start_session()
+                if args.login is None: # the normal case - opening an Instagram app that is already logged in
+                    self.prepare_session_state(args, device_wrapper, app_version, save_profile_info=True)
+                    migrate_from_json_to_sql(self.session_state.my_username)
+                    migrate_from_sql_to_peewee(self.session_state.my_username)
+                    self.storage = InsomniacStorage(self.session_state.my_username, args)
+                    self.session_state.set_storage_layer(self.storage)
+                    self.session_state.start_session()
+                else: # we want to perform login
+                    self.prepare_session_state(args, device_wrapper, app_version, save_profile_info=False)
+                    migrate_from_json_to_sql(args.login)
+                    migrate_from_sql_to_peewee(args.login)
+                    self.storage = InsomniacStorage(args.login, args)
+                    self.session_state.set_storage_layer(self.storage)
+                    self.session_state.start_session()
 
                 action_runner.run(device_wrapper,
                                   self.storage,
