@@ -3,7 +3,8 @@ from insomniac.sleeper import sleeper
 from insomniac.utils import *
 from insomniac.device_facade import DeviceFacade
 from insomniac.action_get_my_profile_info import get_my_profile_info
-import re
+# import re
+import os
 import time
 # import json
 # from pprint import pprint
@@ -131,6 +132,31 @@ def _maybe_find_wait_exists(device, *, label='it', reps=WAIT_EXISTS, **kwargs):
     return
 
 
+def _got_landing_page(device):
+    _printreport("Waiting for IG landing page")
+    landing_page_logo = _maybe_find_wait_exists(device, label='landing_page_logo', reps=WAIT_FOR_LANDING_PAGE,
+                                                resourceId='com.instagram.android:id/logo')  # com.instagram.android:id/login_landing_logo
+    if landing_page_logo is None:
+        return False
+    return True
+
+
+def _no_username_found(device):
+    create_new_account_btn = _maybe_find_wait_exists(device, label='create_new_account_btn',
+                                                     text='Create New Account')
+    if create_new_account_btn is not None:
+        return True
+    return False
+
+
+def _correct_username_found(device, login, reps=WAIT_EXISTS):
+    correct_username = _maybe_find_wait_exists(
+        device, label='correct_username', reps=reps, text=login)
+    if correct_username is not None:
+        return True
+    return False
+
+
 def login(device, on_action, storage, session_state, action_status, is_limit_reached, login, password, dump_ui):
 
     # This function will have influence on click, long_click, drag_to, get_text, set_text, clear_text, etc.
@@ -138,50 +164,39 @@ def login(device, on_action, storage, session_state, action_status, is_limit_rea
 
     _printok(f"Logging in user {login} password {password}")
 
-    _printreport("Waiting for IG")
-    got_landing_page = _maybe_find_wait_exists(device, label='got_landing_page', reps=WAIT_FOR_LANDING_PAGE,
-                                               resourceId='com.instagram.android:id/login_landing_logo')
+    # There are 4 cases - 1. IG remembers a username and password and logs the user in (theoretically could be correct or wrong user)
+    #                   - 2. IG remembers the correct username, and populates the username field, but not the password field
+    #                   - 3. IG remembers the wrong   username, and populates the username field,
+    #                   - 4. IG does not remember any username, and username field is empty
 
-    if got_landing_page is None:
-        _printfail(
-            "Waited but never saw landing page - checking if already logged in")
+    if _got_landing_page(device) is False:
+        _printfail("Never saw landing page - checking if already logged in")
         return _check_logged_in(device, login)
 
-    # There are 4 cases - IG remembers the correct username, and populates the username field, and     the password field
-    #                   - IG remembers the correct username, and populates the username field, but not the password field
-    #                   - IG remembers the wrong   username, and populates the username field,
-    #                   - IG does not remember any username, and username field is empty
+    remembers_correct_username = _correct_username_found(device, login)
+    remembers_no_username = _no_username_found(device)
 
-    create_new_account_btn = _maybe_find_wait_exists(device, label='create_new_account_btn',
-                                                     text='Create New Account')
-
-    correct_username = _maybe_find_wait_exists(
-        device, label='correct_username', text=login)
-
-    if correct_username is None and create_new_account_btn is None:
-        _printfail(
-            f"IG remembers a username but it is not the expected '{login}'")
+    if remembers_no_username is False and remembers_correct_username is False:
+        _printfail(f"IG remembers unexpected username instead of '{login}'")
         return False
 
-    # there's a log in button in all scenarios
-    # log_in_regex = f'^log in'
-    # log_in_regex = re.compile('log in', re.IGNORECASE)
-    _printreport("Clicking log in button")
+    # there's a log in button in all remaining scenarios
     log_in_button = _find_wait_exists(device, dump_ui, label='log_in_button',
                                       textMatches=case_insensitive_re('log in'))
+    _printreport("Clicking log in button")
     log_in_button.click()
 
     sleeper.random_sleep()
 
     # IG does not remember any username
-    if correct_username is None:
+    if remembers_no_username is True:
         _printreport("Filling in username ...")
         username_field = _find_wait_exists(device, dump_ui, label='username_field',
                                            text='Phone number, email or username')
         username_field.set_text(login)
 
-    password_field = _find_wait_exists(device, dump_ui, label='password_field',
-                                       resourceId='com.instagram.android:id/password_input_layout')
+    password_field = _maybe_find_wait_exists(device, label='password_field',
+                                             resourceId='com.instagram.android:id/password_input_layout')
     if password_field is not None:
         _printreport("Filling in password ...")
         password_field.set_text(password)
@@ -190,13 +205,31 @@ def login(device, on_action, storage, session_state, action_status, is_limit_rea
 
         _printreport("Clicking log in button again")
         log_in_button2 = _find_wait_exists(device, dump_ui, label='log_in_button2',
-                                           text='Log In')
+                                           textMatches=case_insensitive_re('log in'))
         log_in_button2.click()
+    else:
+        pass  # IG has already logged us in with saved credentials
+
+    # either we get offered to accept cookies, if this is a new account, or not, if
+    # we've accepted cookies previously
+    cookies_btn = _maybe_find_wait_exists(device, label='cookies_btn', reps=5, textMatches=case_insensitive_re('Allow All Cookies'))
+    if cookies_btn is not None:
+        _printreport('Accepting cookies')
+        cookies_btn.click()
+    else:
+        _printreport("No cookies button offered")
+
+    # _stop_here()
+
+    sleeper.random_sleep()
 
     return _check_logged_in(device, login)
 
 # _check_logged_in() can take a long time to proceed through Insomniac's various tries but seems quite reliable
 
+def _stop_here():
+    _printreport("Stopping - ctrl-C to quit")
+    time.sleep(99999)
 
 def _check_logged_in(device, login):
     _printok("Checking if logged in OK")
