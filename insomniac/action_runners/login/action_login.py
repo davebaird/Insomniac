@@ -158,7 +158,6 @@ def _correct_username_found(device, login, reps=WAIT_EXISTS):
 
 
 def login(device, on_action, storage, session_state, action_status, is_limit_reached, login, password, dump_ui):
-
     # This function will have influence on click, long_click, drag_to, get_text, set_text, clear_text, etc.
     device.deviceV2.implicitly_wait(WAIT_DEFAULT)
 

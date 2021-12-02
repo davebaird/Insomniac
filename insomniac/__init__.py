@@ -32,6 +32,8 @@ def run(activation_code="", starter_conf_file_path=None):
 
     insomniac_session.run()
 
+    return insomniac_session.session_state.exit_code
+
 
 def is_newer_version_available():
     current_version = __version__.__version__

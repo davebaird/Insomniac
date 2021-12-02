@@ -59,21 +59,26 @@ class LoginActionRunner(CoreActionsRunner):
         @run_safely(device_wrapper=device_wrapper)
         def job():
             self.action_status.set(ActionState.RUNNING)
+            # indicate that success was never returned, due to exception handling -
+            session_state.exit_code = 7
             success = login(device=device_wrapper.get(),
-                           on_action=on_action,
-                           storage=storage,
-                           session_state=session_state,
-                           action_status=self.action_status,
-                           is_limit_reached=is_limit_reached,
-                           login=self.login,
-                           password=self.password,
-                           dump_ui=self.dump_ui)
+                            on_action=on_action,
+                            storage=storage,
+                            session_state=session_state,
+                            action_status=self.action_status,
+                            is_limit_reached=is_limit_reached,
+                            login=self.login,
+                            password=self.password,
+                            dump_ui=self.dump_ui)
 
             if success is True:
+                session_state.exit_code = 0
                 print(COLOR_REPORT + f"Logged in to {self.login}" + COLOR_ENDC)
                 # storage.increment_logins_count()
             else:
-                print(COLOR_REPORT + f"Could not log in to {self.login}" + COLOR_ENDC)
+                session_state.exit_code = 1
+                print(COLOR_REPORT +
+                      f"Could not log in to {self.login}" + COLOR_ENDC)
 
             self.action_status.set(ActionState.DONE)
 
