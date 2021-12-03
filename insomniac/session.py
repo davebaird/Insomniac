@@ -275,7 +275,6 @@ class InsomniacSession(Session):
         if __version__.__debug_mode__:
             device_wrapper.get().stop_screen_record()
         print_copyright()
-        # if self.session_state is not None: # it's none if running Login action
         self.session_state.end_session()
         print_timeless(COLOR_REPORT + "-------- FINISH: " + str(self.session_state.finishTime) + " --------" + COLOR_ENDC)
 

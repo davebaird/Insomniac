@@ -125,7 +125,7 @@ def _maybe_find_wait_exists(device, *, label='it', reps=WAIT_EXISTS, **kwargs):
         if thing.exists():
             print(f"_maybe_find_wait_exists FOUND {label}")
             return thing
-        print(f"_maybe_find_wait_exists didn't find {label}... sleeping 1")
+        print(f"_maybe_find_wait_exists didn't find {label}... sleeping 1 of {reps}")
         time.sleep(1)
 
     print(f"_maybe_find_wait_exists didn't find {label}... GIVING UP")
