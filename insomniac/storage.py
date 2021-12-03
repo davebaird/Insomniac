@@ -282,7 +282,6 @@ class InsomniacStorage(Storage):
         else:
             raise RuntimeError("Expected profile data to be populated but got None")
 
-
     def get_target(self, session_id):
         """
         Get a target from args (users/posts) -> OR from targets file (users/posts) -> OR from scrapping (only users).
