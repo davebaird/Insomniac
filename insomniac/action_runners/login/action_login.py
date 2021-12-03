@@ -209,14 +209,7 @@ def login(device, on_action, storage, session_state, action_status, is_limit_rea
     else:
         pass  # IG has already logged us in with saved credentials
 
-    # either we get offered to accept cookies, if this is a new account, or not, if
-    # we've accepted cookies previously
-    cookies_btn = _maybe_find_wait_exists(device, label='cookies_btn', reps=5, textMatches=case_insensitive_re('Allow All Cookies'))
-    if cookies_btn is not None:
-        _printreport('Accepting cookies')
-        cookies_btn.click()
-    else:
-        _printreport("No cookies button offered")
+    _accept_cookies_if_offered(device, 5)
 
     # _stop_here()
 
@@ -226,12 +219,36 @@ def login(device, on_action, storage, session_state, action_status, is_limit_rea
 
 # _check_logged_in() can take a long time to proceed through Insomniac's various tries but seems quite reliable
 
+
 def _stop_here():
     _printreport("Stopping - ctrl-C to quit")
     time.sleep(99999)
 
+
+def _accept_cookies_if_offered(device, reps=WAIT_EXISTS):
+    # either we get offered to accept cookies, if this is a new account, or not, if
+    # we've accepted cookies previously
+    cookies_btn = _maybe_find_wait_exists(
+        device, label='cookies_btn', reps=reps, textMatches=case_insensitive_re('Allow All Cookies'))
+    if cookies_btn is not None:
+        _printreport('Accepting cookies')
+        cookies_btn.click()
+    else:
+        _printreport("No cookies button offered")
+
+
 def _check_logged_in(device, login):
     _printok("Checking if logged in OK")
+
+    # there can be a big delay after login and we miss the cookies modal, then get
+    # into a cycle of exception handling, finally reaching the _check_logged_in()
+    # call, by which time the cookies modal has been presented, so we need to
+    # check for it first
+    _printok("But first, checking for cookies modal")
+    _accept_cookies_if_offered(device)
+
+    sleeper.random_sleep()
+
     try:
         # doing it like this is an ugly hack but it works
         my_username = get_my_profile_info(device, login)[0]
