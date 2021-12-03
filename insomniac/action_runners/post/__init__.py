@@ -97,7 +97,7 @@ class PostActionRunner(CoreActionsRunner):
 
             if success is not None:
                 print(COLOR_REPORT + "Posted image to " + session_state.my_username + COLOR_ENDC)
-                storage.increment_posts_count()
+                storage.log_post()
             else:
                 print(COLOR_REPORT + "Did not post image" + COLOR_ENDC)
 
