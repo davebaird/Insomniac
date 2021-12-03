@@ -170,7 +170,7 @@ def login(device, on_action, storage, session_state, action_status, is_limit_rea
 
     if _got_landing_page(device) is False:
         _printfail("Never saw landing page - checking if already logged in")
-        return _check_logged_in(device, session_state, login)
+        return _check_logged_in(device, storage, login)
 
     remembers_correct_username = _correct_username_found(device, login)
     remembers_no_username = _no_username_found(device)
@@ -215,7 +215,7 @@ def login(device, on_action, storage, session_state, action_status, is_limit_rea
 
     sleeper.random_sleep()
 
-    return _check_logged_in(device, session_state, login)
+    return _check_logged_in(device, storage, login)
 
 # _check_logged_in() can take a long time to proceed through Insomniac's various tries but seems quite reliable
 
@@ -241,7 +241,7 @@ def _accept_cookies_if_offered(device, reps=WAIT_EXISTS):
 # bc we are not logged in. .end_session() stores the current session data (i.e.
 # user stats) back into the database. So we need to add the user stats into the session
 # if we have successfully logged in, or else they get set back to 0
-def _check_logged_in(device, session_state, login):
+def _check_logged_in(device, storage, login):
     _printok("Checking if logged in OK")
 
     # there can be a big delay after login and we miss the cookies modal, then get
@@ -264,10 +264,11 @@ def _check_logged_in(device, session_state, login):
         if my_username == login:
             # Setting these data was skipped in InsomniacSession.prepare_session_state()
             # bc we were not logged in
-            session_state.my_username = my_username
-            session_state.my_followers_count = followers
-            session_state.my_following_count = following
-            session_state.my_posts_count = posts
+            # session_state.my_username = my_username
+            # session_state.my_followers_count = followers
+            # session_state.my_following_count = following
+            # session_state.my_posts_count = posts
+            storage.log_login(followers, following, posts)
             return True
         else:
             _printfail(f"Wrong logged-in user '{my_username}' != '{login}'")
