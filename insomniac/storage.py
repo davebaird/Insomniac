@@ -260,7 +260,7 @@ class InsomniacStorage(Storage):
             posts_count = latest_profile_info.posts
         profile.update_profile_info(status, followers_count, following_count, posts_count)
 
-    def increment_posts_count(self):
+    def log_post(self):
         followers_count = 0
         following_count = 0
         posts_count = 0
