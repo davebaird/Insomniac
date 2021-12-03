@@ -14,7 +14,7 @@ InteractAction = namedtuple('InteractAction', 'source_name source_type user succ
 RemoveMassFollowerAction = namedtuple('RemoveMassFollowerAction', 'user')
 PostAction = namedtuple('PostAction', 'user')
 StartSessionAction = namedtuple('StartSessionAction', '')
-
+LoginAction = namedtuple('LoginAction', 'user')
 
 @unique
 class SourceType(Enum):

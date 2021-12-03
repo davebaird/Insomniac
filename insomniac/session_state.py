@@ -14,6 +14,7 @@ class SessionState(ABC):
     finishTime = None
     storage: Optional[Storage] = None
     is_started = False
+    exit_code = 0
 
     def __init__(self):
         self.id = None
@@ -22,6 +23,7 @@ class SessionState(ABC):
         self.finishTime = None
         self.storage = None
         self.is_started = False
+        self.exit_code = 0
 
     def set_storage_layer(self, storage_instance):
         self.storage = storage_instance
