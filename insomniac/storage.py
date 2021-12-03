@@ -282,8 +282,6 @@ class InsomniacStorage(Storage):
         else:
             raise RuntimeError("Expected profile data to be populated but got None")
 
-
-
     def log_login(self, followers_count, following_count, posts_count):
         status = None
         latest_profile_info = self.profile.get_latsest_profile_info()
