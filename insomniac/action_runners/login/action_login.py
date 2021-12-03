@@ -170,7 +170,7 @@ def login(device, on_action, storage, session_state, action_status, is_limit_rea
 
     if _got_landing_page(device) is False:
         _printfail("Never saw landing page - checking if already logged in")
-        return _check_logged_in(device, login)
+        return _check_logged_in(device, session_state, login)
 
     remembers_correct_username = _correct_username_found(device, login)
     remembers_no_username = _no_username_found(device)
@@ -215,7 +215,7 @@ def login(device, on_action, storage, session_state, action_status, is_limit_rea
 
     sleeper.random_sleep()
 
-    return _check_logged_in(device, login)
+    return _check_logged_in(device, session_state, login)
 
 # _check_logged_in() can take a long time to proceed through Insomniac's various tries but seems quite reliable
 
@@ -237,27 +237,37 @@ def _accept_cookies_if_offered(device, reps=WAIT_EXISTS):
         _printreport("No cookies button offered")
 
 
-def _check_logged_in(device, login):
+# InsomniacSession.run() prepares the session, but we skip populating user stats
+# bc we are not logged in. .end_session() stores the current session data (i.e.
+# user stats) back into the database. So we need to add the user stats into the session
+# if we have successfully logged in, or else they get set back to 0
+def _check_logged_in(device, session_state, login):
     _printok("Checking if logged in OK")
 
     # there can be a big delay after login and we miss the cookies modal, then get
     # into a cycle of exception handling, finally reaching the _check_logged_in()
     # call, by which time the cookies modal has been presented, so we need to
-    # check for it first
+    # check for it again
     _printok("But first, checking for cookies modal")
     _accept_cookies_if_offered(device)
 
     sleeper.random_sleep()
 
     try:
-        # doing it like this is an ugly hack but it works
-        my_username = get_my_profile_info(device, login)[0]
+        my_username, followers, following, posts = get_my_profile_info(
+            device, login)
     except RuntimeError:  # can't access profile page bc not logged in - nb. this catch does not prevent a stacktrace being printed
         _printfail(f"No logged in user")
         return False
 
     if my_username is not None:
         if my_username == login:
+            # Setting these data was skipped in InsomniacSession.prepare_session_state()
+            # bc we were not logged in
+            session_state.my_username = my_username
+            session_state.my_followers_count = followers
+            session_state.my_following_count = following
+            session_state.my_posts_count = posts
             return True
         else:
             _printfail(f"Wrong logged-in user '{my_username}' != '{login}'")
