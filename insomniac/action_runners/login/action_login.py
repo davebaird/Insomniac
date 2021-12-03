@@ -120,12 +120,12 @@ def _fail(device, dump_ui, label, msg=None):
 
 def _maybe_find_wait_exists(device, *, label='it', reps=WAIT_EXISTS, **kwargs):
     sleeper.random_sleep()
-    for _ in range(0, reps):
+    for rep in range(1, reps + 1):
         thing = device.find(**kwargs)
         if thing.exists():
-            print(f"_maybe_find_wait_exists FOUND {label}")
+            print(f"FOUND {label}")
             return thing
-        print(f"_maybe_find_wait_exists didn't find {label}... sleeping 1 of {reps}")
+        print(f"Didn't find {label}... sleeping {rep} of {reps}")
         time.sleep(1)
 
     print(f"_maybe_find_wait_exists didn't find {label}... GIVING UP")
