@@ -61,7 +61,7 @@ def _find_wait_exists(device, dump_ui, label, **kwargs):
     _fail(device, dump_ui, label)
 
 
-def _maybe_find_wait_exists(device, *, label='it', reps=WAIT_EXISTS, **kwargs):
+def _maybe_find_wait_exists(device, *, label='it', skip_perms_check=False, reps=WAIT_EXISTS, **kwargs):
     sleeper.random_sleep()
     rep = 1
     while rep <= reps:
@@ -71,8 +71,9 @@ def _maybe_find_wait_exists(device, *, label='it', reps=WAIT_EXISTS, **kwargs):
             return thing
         print(f"_maybe_find_wait_exists didn't find {label}... sleeping 1")
         # maybe blocked by a permissions modal
-        if _accept_perms_if_asked(device):
-            continue
+        if skip_perms_check is False:
+            if _accept_perms_if_asked(device):
+                continue
         rep += 1
 
     print(f"_maybe_find_wait_exists didn't find {label}... GIVING UP")
@@ -82,7 +83,7 @@ def _maybe_find_wait_exists(device, *, label='it', reps=WAIT_EXISTS, **kwargs):
 def _accept_perms_if_asked(device):
     # d(resourceId="com.android.permissioncontroller:id/permission_allow_button")
     perms_btn = _maybe_find_wait_exists(
-        device, label='perms_btn', resourceId="com.android.permissioncontroller:id/permission_allow_button")
+        device, label='perms_btn', skip_perms_check=True, resourceId="com.android.permissioncontroller:id/permission_allow_button")
     if perms_btn is not None:
         _printreport('Accepting permissions request')
         perms_btn.click()
