@@ -95,7 +95,7 @@ class PostActionRunner(CoreActionsRunner):
                            dump_ui=self.dump_ui,
                            image_path_on_device=image_path_on_device)
 
-            if success is not None:
+            if success is True:
                 print(COLOR_REPORT + "Posted image to " + session_state.my_username + COLOR_ENDC)
                 storage.log_post()
             else:
