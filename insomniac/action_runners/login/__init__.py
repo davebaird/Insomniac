@@ -33,7 +33,6 @@ class LoginActionRunner(CoreActionsRunner):
             else:
                 raise FileNotFoundError("LOGIN: password required '")
         else:
-            print("LOGIN: login (username) is required")
             return False
 
     def reset_params(self):
