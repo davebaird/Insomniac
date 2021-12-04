@@ -19,17 +19,23 @@ from pathlib import Path
 
 WAIT_EXISTS = 1
 
+
+STOPFILE = Path('posting.stopfile').resolve()
 FIRST_PAUSE_ENCOUNTERED = False
-STOPFILE = Path('posting.stopfile')
+
 
 def _pause(msg=''):
+    return
+
+    global FIRST_PAUSE_ENCOUNTERED
     if FIRST_PAUSE_ENCOUNTERED is False:
         FIRST_PAUSE_ENCOUNTERED = True
         STOPFILE.touch()
 
     if len(msg):
         msg = f'{msg}: '
-        _printbold(f'{msg}To continue: rm {str(STOPFILE)}')
+
+    _printbold(f'{msg}To continue: rm {str(STOPFILE)}')
 
     while True:
         if STOPFILE.exists() is False:
@@ -155,19 +161,21 @@ def _middlish(bounds):
     return x, y
 
 
-def start_post(device, dump_ui):
+def start_post_orig(device, dump_ui):
     _printok("Starting a new post")
+
+    _pause("Navigate to home")
 
     print("Get home_view, prepare to post")
     TabBarView(device).navigate_to_home()
+
+    _pause("Looking for initial post button")
 
     # button version 1
     post_button = _maybe_find_wait_exists(device, label='post_button_alt.1',
                                           resourceId='com.instagram.android:id/action_bar_left_button',
                                           className='android.widget.ImageView',
                                           description='Camera')
-
-    _pause("Looking for initial post button")
 
     if post_button is not None:
         post_button.click()
@@ -221,7 +229,45 @@ def start_post(device, dump_ui):
 
     else:
         # give up
-        return
+        return False
+
+
+def start_post(device, dump_ui):
+    _printok("Starting a new post")
+
+    _pause("Navigate to home")
+
+    print("Get home_view, prepare to post")
+    TabBarView(device).navigate_to_home()
+
+    _pause("Looking for initial post button")
+
+    # button version 1
+    post_button = _find_wait_exists(
+        device, dump_ui, 'post_button_1', description='Camera')
+
+    if post_button is None:
+        _printfail("Couldn't find post button - giving up")
+        return False
+
+    _pause("Click post button for 1st time...")
+
+    # Most post buttons when first clicked, activate the camera. For those, we
+    # need to click, go back, and click again. This sequence should also work
+    # on post buttons that go directly to post initialisation. They all seem
+    # to be identified by the same description ('Camera').
+    post_button.click()
+    sleeper.random_sleep()
+    device.back()
+
+    _pause("Click post button for 2nd time...")
+
+    # find the same button, but now it doesn't go to camera, it goes to start post (FFS)
+    post_button2 = _find_wait_exists(
+        device, dump_ui, 'post_button_2', description='Camera')
+    post_button2.click()
+    sleeper.random_sleep()
+    return True
 
 
 def select_image(device, dump_ui):
@@ -231,7 +277,7 @@ def select_image(device, dump_ui):
                                              resourceIdMatches=case_insensitive_re(f"{device.app_id}:id/gallery_folder_menu(?:_alt)?$"))
 
     if gallery_popup_button is None:
-        return
+        return False
 
     gallery_popup_button.click()
 
@@ -242,7 +288,7 @@ def select_image(device, dump_ui):
                                      className='android.widget.Button',
                                      text='Other…')
     if button_other is None:
-        return
+        return False
 
     button_other.click()
 
@@ -268,7 +314,7 @@ def select_image(device, dump_ui):
                                                    className='android.widget.TextView',
                                                    text='Downloads')
             if downloads_menuitem is None:
-                return
+                return False
             downloads_menuitem.click()
 
     # -----
@@ -285,7 +331,7 @@ def select_image(device, dump_ui):
                                          resourceId='com.google.android.documentsui:id/thumbnail')
 
     if image_parent is None:
-        return
+        return False
     image = image_parent.child(index=0)
     image.click()
 
@@ -301,7 +347,7 @@ def accept_image(device, dump_ui):
                                    className='android.widget.ImageView',
                                    resourceId='com.instagram.android:id/save')
     if blue_arrow is None:
-        return
+        return False
     blue_arrow.click()
 
     _wait_for('image display', device, 'com.instagram.android',
@@ -312,7 +358,7 @@ def accept_image(device, dump_ui):
                                     className='android.widget.ImageView',
                                     resourceId='com.instagram.android:id/next_button_imageview')
     if blue_arrow2 is None:
-        return
+        return False
     blue_arrow2.click()
 
     return True
@@ -325,7 +371,7 @@ def add_caption(device, caption, dump_ui):
                                             className='android.widget.EditText',
                                             resourceId='com.instagram.android:id/caption_text_view')
         if caption_editbox is None:
-            return
+            return False
 
         caption_editbox.click()
         sleeper.random_sleep()
@@ -369,7 +415,7 @@ def add_tags(device, tagnames, dump_ui):
                                                 className='android.widget.TextView',
                                                 text='Tag People')
         if tag_tagnames_button is None:
-            return
+            return False
         # clicking this button opens the image
         tag_tagnames_button.click()
 
@@ -382,7 +428,7 @@ def add_tags(device, tagnames, dump_ui):
                                            className='android.widget.ImageView',
                                            resourceId='com.instagram.android:id/tag_image_view')
         if taggable_image is None:
-            return
+            return False
 
         bounds = taggable_image.get_bounds()
         x, y = _middlish(bounds)
@@ -394,7 +440,7 @@ def add_tags(device, tagnames, dump_ui):
                                            className='android.widget.EditText',
                                            resourceId='com.instagram.android:id/row_search_edit_text')
         if user_searchbox is None:
-            return
+            return False
         user_searchbox.set_text(tagnames[0])
 
         device.close_keyboard()
@@ -418,7 +464,7 @@ def add_tags(device, tagnames, dump_ui):
                                                      text=tagnames[0])
 
         if selected_user_button is None:
-            return
+            return False
         selected_user_button.click()
 
         # the user has now been inserted into the image tag
@@ -441,7 +487,7 @@ def add_tags(device, tagnames, dump_ui):
                                             )
 
         if blue_arrow3 is None:
-            return
+            return False
 
         blue_arrow3.click()
 
@@ -459,7 +505,7 @@ def add_location(device, location, dump_ui):
                                                 className='android.widget.TextView',
                                                 resourceId='com.instagram.android:id/location_label')
         if add_location_button is None:
-            return
+            return False
         add_location_button.click()
 
         # -----
@@ -468,7 +514,7 @@ def add_location(device, location, dump_ui):
                                           className='android.widget.EditText',
                                           resourceId='com.instagram.android:id/row_search_edit_text')
         if location_sbox is None:
-            return
+            return False
         location_sbox.set_text(location)
 
         device.close_keyboard()
@@ -483,7 +529,7 @@ def add_location(device, location, dump_ui):
                                          className='android.widget.TextView',
                                          text=location)
         if selected_loc is None:
-            return
+            return False
         selected_loc.click()
 
     return True
@@ -495,7 +541,7 @@ def do_post(device, dump_ui):
                                   className='android.widget.ImageView',
                                   resourceId='com.instagram.android:id/next_button_imageview')
     if blue_tick is None:
-        return
+        return False
 
     blue_tick.click()
 
@@ -592,14 +638,16 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
     # This function will have influence on click, long_click, drag_to, get_text, set_text, clear_text, etc.
     device.deviceV2.implicitly_wait(10)
 
-    if start_post(device, dump_ui) is not True:
-        return
+    _pause("Going to start post")
 
-    if select_image(device, dump_ui) is not True:
-        return
+    if start_post(device, dump_ui) is False:
+        return False
 
-    if accept_image(device, dump_ui) is not True:
-        return
+    if select_image(device, dump_ui) is False:
+        return False
+
+    if accept_image(device, dump_ui) is False:
+        return False
 
     #
     # We have now reached the details page, where caption, tagnames, and location can be entered
@@ -608,17 +656,17 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
     _wait_for('default locations to populate', device, 'com.instagram.android',
               'android.widget.LinearLayout', 'suggested_locations_container')
 
-    if add_caption(device, caption, dump_ui) is not True:
-        return
+    if add_caption(device, caption, dump_ui) is False:
+        return False
 
-    if add_tags(device, tagnames, dump_ui) is not True:
-        return
+    if add_tags(device, tagnames, dump_ui) is False:
+        return False
 
-    if add_location(device, location, dump_ui) is not True:
-        return
+    if add_location(device, location, dump_ui) is False:
+        return False
 
-    if do_post(device, dump_ui) is not True:
-        return
+    if do_post(device, dump_ui) is False:
+        return False
 
     return check_posted(device, session_state, dump_ui)
 
