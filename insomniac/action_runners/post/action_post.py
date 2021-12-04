@@ -9,6 +9,7 @@ import time
 # from pprint import pprint
 from random import randrange
 from datetime import datetime
+from pathlib import Path
 
 # COLOR_OKBLUE
 # COLOR_HEADER
@@ -17,6 +18,24 @@ from datetime import datetime
 #   https://github.com/openatx/uiautomator2
 
 WAIT_EXISTS = 1
+
+FIRST_PAUSE_ENCOUNTERED = False
+STOPFILE = Path('posting.stopfile')
+
+def _pause(msg=''):
+    if FIRST_PAUSE_ENCOUNTERED is False:
+        FIRST_PAUSE_ENCOUNTERED = True
+        STOPFILE.touch()
+
+    if len(msg):
+        msg = f'{msg}: '
+        _printbold(f'{msg}To continue: rm {str(STOPFILE)}')
+
+    while True:
+        if STOPFILE.exists() is False:
+            STOPFILE.touch()
+            break
+        time.sleep(1)
 
 
 def _printfail(msg):
@@ -148,6 +167,8 @@ def start_post(device, dump_ui):
                                           className='android.widget.ImageView',
                                           description='Camera')
 
+    _pause("Looking for initial post button")
+
     if post_button is not None:
         post_button.click()
         return True
@@ -155,7 +176,7 @@ def start_post(device, dump_ui):
     # OK, that was the easy one, but we didn't find it
 
     # button version 2
-    # on sailing.barcelona, the button starts out as a camera button, we need to click it then come
+    # sometimes the button starts out as a camera button, we need to click it then come
     # back, it will then have changed to the post button
     post_button = _maybe_find_wait_exists(device, label='post_button_alt.2.1',
                                           resourceId='com.instagram.android:id/action_bar_left_button',
