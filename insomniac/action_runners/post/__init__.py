@@ -85,9 +85,11 @@ class PostActionRunner(CoreActionsRunner):
                            image_path_on_device=image_path_on_device)
 
             if success is True:
+                session_state.exit_code = 0
                 print(COLOR_REPORT + "Posted image to " + session_state.my_username + COLOR_ENDC)
                 storage.log_post()
             else:
+                session_state.exit_code = 1
                 print(COLOR_REPORT + "Did not post image" + COLOR_ENDC)
 
             self.action_status.set(ActionState.DONE)
