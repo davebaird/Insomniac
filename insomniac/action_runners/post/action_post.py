@@ -25,7 +25,7 @@ FIRST_PAUSE_ENCOUNTERED = False
 
 
 def _pause(msg=''):
-    # return
+    return
 
     global FIRST_PAUSE_ENCOUNTERED
     if FIRST_PAUSE_ENCOUNTERED is False:
