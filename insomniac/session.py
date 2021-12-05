@@ -9,7 +9,7 @@ from insomniac.action_get_my_profile_info import get_my_profile_info
 from insomniac.action_runners.actions_runners_manager import CoreActionRunnersManager
 from insomniac.device import DeviceWrapper
 from insomniac.hardban_indicator import HardBanError, hardban_indicator
-from insomniac.login_indicator import LoginError, login_indicator
+from insomniac.login_indicator import LoginRequiredError, login_indicator
 from insomniac.limits import LimitsManager
 from insomniac.migration import migrate_from_json_to_sql, migrate_from_sql_to_peewee
 from insomniac.navigation import close_instagram_and_system_dialogs
