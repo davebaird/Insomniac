@@ -354,6 +354,7 @@ class InsomniacSession(Session):
                     raise ex
                 else:
                     print(COLOR_FAIL + describe_exception(ex) + COLOR_ENDC)
+                    self.session_state.exit_code = 1
                     save_crash(device_wrapper.get(), ex)
 
             self.end_session(device_wrapper, with_app_closing=self.should_close_app_after_session(args, device_wrapper))

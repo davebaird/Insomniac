@@ -25,7 +25,7 @@ FIRST_PAUSE_ENCOUNTERED = False
 
 
 def _pause(msg=''):
-    return
+    # return
 
     global FIRST_PAUSE_ENCOUNTERED
     if FIRST_PAUSE_ENCOUNTERED is False:
@@ -64,14 +64,6 @@ def _printbold(msg):
     print(COLOR_BOLD + msg + COLOR_ENDC)
 
 
-def _dump_ui(device, name='ui', dir='.'):
-    time.sleep(2)
-    device.dump_hierarchy(f'{dir}/{name}.uix')
-    _adb_cmd(device, f"shell screencap -p /sdcard/ui.png")
-    _adb_cmd(device, f"pull /sdcard/ui.png {dir}/{name}.png")
-    _printbold(f"Dumped UI files {dir}/{name}.png and {dir}/{name}.uix")
-
-
 def _wait_for(label, device, package, className, resource_id):
     print(f"Waiting for {label}...")
     device.find(resourceId=f'{package}:id/{resource_id}',
@@ -79,68 +71,60 @@ def _wait_for(label, device, package, className, resource_id):
     print("   ...OK")
 
 
-def _find_wait_exists(device, dump_ui, label, **kwargs):
+def _find_wait_exists(device, label, **kwargs):
     thing = _maybe_find_wait_exists(device, label=label, **kwargs)
     if thing is not None:
         return thing
-    _fail(device, dump_ui, label)
+    _fail(device, label)
 
 
 def _maybe_find_wait_exists(device, *, label='it', skip_perms_check=False, reps=WAIT_EXISTS, **kwargs):
-    sleeper.random_sleep()
-    rep = 1
-    while rep <= reps:
+    for rep in range(1, reps + 1):
+        _accept_perms_if_asked(device, skip_perms_check)
         thing = device.find(**kwargs)
         if thing.exists():
-            print(f"_maybe_find_wait_exists FOUND {label}")
+            print(f"FOUND {label}")
             return thing
-        print(f"_maybe_find_wait_exists didn't find {label}... sleeping 1")
-        # maybe blocked by a permissions modal
-        if skip_perms_check is False:
-            if _accept_perms_if_asked(device):
-                continue
-        rep += 1
+        print(f"Didn't find {label}... retry")
 
-    print(f"_maybe_find_wait_exists didn't find {label}... GIVING UP")
+    print(f"Didn't find {label}... GIVING UP")
     return
 
 
-def _accept_perms_if_asked(device):
-    # d(resourceId="com.android.permissioncontroller:id/permission_allow_button")
-    perms_btn = _maybe_find_wait_exists(
-        device, label='perms_btn', skip_perms_check=True, resourceId="com.android.permissioncontroller:id/permission_allow_button")
-    if perms_btn is not None:
-        _printreport('Accepting permissions request')
-        perms_btn.click()
+def _accept_perms_if_asked(device, skip_perms_check=False):
+    if skip_perms_check is False:
+        sleeper.random_sleep()
+        perms_btn = _maybe_find_wait_exists(
+            device, label='perms_btn', skip_perms_check=True, resourceId="com.android.permissioncontroller:id/permission_allow_button")
+        if perms_btn is not None:
+            _printreport('Accepting permissions request')
+            perms_btn.click()
+            sleeper.random_sleep()
+
+
+def _detect_login_screen(device):
+    # lifted verbatim from action_login._got_login_landing_page()
+
+    # no username remembered
+    landing_page_logo_1 = _maybe_find_wait_exists(
+        device, label='landing_page_logo_1', resourceId='com.instagram.android:id/logo')
+    if landing_page_logo_1 is not None:
         return True
+
+    # username remembered
+    landing_page_logo_2 = _maybe_find_wait_exists(
+        device, label='landing_page_logo_2', resourceId='com.instagram.android:id/login_landing_logo')
+    if landing_page_logo_2 is not None:
+        return True
+
     return False
 
 
-def _fail(device, dump_ui, label, msg=None):
+def _fail(device, label, msg=None):
     if msg is None:
         msg = f'Cannot find {label}. Quitting.'
     _printfail(msg)
-    if dump_ui is True:
-        logdir = _get_logs_dir_name()
-        prefix_with_ts = _get_log_file_prefix()
-        _dump_ui(device, f'{prefix_with_ts}-error-{label}', logdir)
     return
-
-
-# copied from utils.py
-def _get_logs_dir_name():
-    return 'logs'
-    # if globals.is_ui_process:
-    #     return UI_LOGS_DIR_NAME
-    # return ENGINE_LOGS_DIR_NAME
-
-
-# Adapted from utils.py _get_log_file_name()
-# Using this so the logfile and ui files sort together in directory listing
-def _get_log_file_prefix():
-    curr_time = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-    log_prefix = f"insomniac_log-{curr_time}{'-'+insomniac_globals.execution_id if insomniac_globals.execution_id != '' else ''}"
-    return log_prefix
 
 
 def _middlish(bounds):
@@ -161,79 +145,86 @@ def _middlish(bounds):
     return x, y
 
 
-def start_post_orig(device, dump_ui):
+# def start_post_orig(device):
+#     _printok("Starting a new post")
+
+#     _pause("Navigate to home")
+
+#     print("Get home_view, prepare to post")
+#     TabBarView(device).navigate_to_home()
+
+#     _pause("Looking for initial post button")
+
+#     # button version 1
+#     post_button = _maybe_find_wait_exists(device, label='post_button_alt.1',
+#                                           resourceId='com.instagram.android:id/action_bar_left_button',
+#                                           className='android.widget.ImageView',
+#                                           description='Camera')
+
+#     if post_button is not None:
+#         post_button.click()
+#         return True
+
+#     # OK, that was the easy one, but we didn't find it
+
+#     # button version 2
+#     # sometimes the button starts out as a camera button, we need to click it then come
+#     # back, it will then have changed to the post button
+#     post_button = _maybe_find_wait_exists(device, label='post_button_alt.2.1',
+#                                           resourceId='com.instagram.android:id/action_bar_left_button',
+#                                           className='android.widget.Button',
+#                                           description='Camera')
+
+#     if post_button is not None:
+#         # go to the camera, then come back
+#         post_button.click()
+#         sleeper.random_sleep()
+#         device.back()
+
+#         # find the same button, but now it doesn't go to camera, it goes to start post (FFS)
+#         post_button2 = _find_wait_exists(device, 'post_button_alt.2.2',
+#                                          resourceId='com.instagram.android:id/action_bar_left_button',
+#                                          className='android.widget.Button',
+#                                          description='Camera')
+#         post_button2.click()
+#         return True
+
+#     # button version 3
+#     # this thing appeared on boutique.hotels.bcn, same thing, the button starts out as a camera button,
+#     # we need to click it then come back, it will then have changed to the post button
+#     post_button = _find_wait_exists(device, 'post_button_alt.3.1',
+#                                     resourceId='com.instagram.android:id/creation_tab',
+#                                     className='android.widget.FrameLayout',
+#                                     description='Camera')
+
+#     if post_button is not None:
+#         # go to the camera, then come back
+#         post_button.click()
+#         sleeper.random_sleep()
+#         device.back()
+
+#         # find the same button, but now it doesn't go to camera, it goes to start post (FFS)
+#         post_button2 = _find_wait_exists(device, 'post_button_alt.3.2',
+#                                          resourceId='com.instagram.android:id/creation_tab',
+#                                          className='android.widget.FrameLayout',
+#                                          description='Camera')
+#         post_button2.click()
+#         return True
+
+#     else:
+#         # give up
+#         return False
+
+
+def start_post(device):
     _printok("Starting a new post")
 
-    _pause("Navigate to home")
-
-    print("Get home_view, prepare to post")
-    TabBarView(device).navigate_to_home()
-
-    _pause("Looking for initial post button")
-
-    # button version 1
-    post_button = _maybe_find_wait_exists(device, label='post_button_alt.1',
-                                          resourceId='com.instagram.android:id/action_bar_left_button',
-                                          className='android.widget.ImageView',
-                                          description='Camera')
-
-    if post_button is not None:
-        post_button.click()
-        return True
-
-    # OK, that was the easy one, but we didn't find it
-
-    # button version 2
-    # sometimes the button starts out as a camera button, we need to click it then come
-    # back, it will then have changed to the post button
-    post_button = _maybe_find_wait_exists(device, label='post_button_alt.2.1',
-                                          resourceId='com.instagram.android:id/action_bar_left_button',
-                                          className='android.widget.Button',
-                                          description='Camera')
-
-    if post_button is not None:
-        # go to the camera, then come back
-        post_button.click()
-        sleeper.random_sleep()
-        device.back()
-
-        # find the same button, but now it doesn't go to camera, it goes to start post (FFS)
-        post_button2 = _find_wait_exists(device, dump_ui, 'post_button_alt.2.2',
-                                         resourceId='com.instagram.android:id/action_bar_left_button',
-                                         className='android.widget.Button',
-                                         description='Camera')
-        post_button2.click()
-        return True
-
-    # button version 3
-    # this thing appeared on boutique.hotels.bcn, same thing, the button starts out as a camera button,
-    # we need to click it then come back, it will then have changed to the post button
-    post_button = _find_wait_exists(device, dump_ui, 'post_button_alt.3.1',
-                                    resourceId='com.instagram.android:id/creation_tab',
-                                    className='android.widget.FrameLayout',
-                                    description='Camera')
-
-    if post_button is not None:
-        # go to the camera, then come back
-        post_button.click()
-        sleeper.random_sleep()
-        device.back()
-
-        # find the same button, but now it doesn't go to camera, it goes to start post (FFS)
-        post_button2 = _find_wait_exists(device, dump_ui, 'post_button_alt.3.2',
-                                         resourceId='com.instagram.android:id/creation_tab',
-                                         className='android.widget.FrameLayout',
-                                         description='Camera')
-        post_button2.click()
-        return True
-
-    else:
-        # give up
+    # Any navigate_to_* call will choke if the login screen has been presented,
+    # so this check must come before navigate_to_home()
+    # This call will also clear any perms modals presented at the start of a session.
+    if _detect_login_screen(device) is True:
+        _printfail("Login screen detected - aborting")
         return False
-
-
-def start_post(device, dump_ui):
-    _printok("Starting a new post")
 
     _pause("Navigate to home")
 
@@ -244,7 +235,7 @@ def start_post(device, dump_ui):
 
     # button version 1
     post_button = _find_wait_exists(
-        device, dump_ui, 'post_button_1', description='Camera')
+        device, 'post_button_1', description='Camera')
 
     if post_button is None:
         _printfail("Couldn't find post button - giving up")
@@ -264,15 +255,15 @@ def start_post(device, dump_ui):
 
     # find the same button, but now it doesn't go to camera, it goes to start post (FFS)
     post_button2 = _find_wait_exists(
-        device, dump_ui, 'post_button_2', description='Camera')
+        device, 'post_button_2', description='Camera')
     post_button2.click()
     sleeper.random_sleep()
     return True
 
 
-def select_image(device, dump_ui):
+def select_image(device):
     print("Press \"Gallery\" dropdown button")
-    gallery_popup_button = _find_wait_exists(device, dump_ui, 'gallery_popup_button_alt',
+    gallery_popup_button = _find_wait_exists(device, 'gallery_popup_button_alt',
                                              className='android.widget.Spinner',
                                              resourceIdMatches=case_insensitive_re(f"{device.app_id}:id/gallery_folder_menu(?:_alt)?$"))
 
@@ -283,7 +274,7 @@ def select_image(device, dump_ui):
 
     # -----
     print("Select \"Other...\" option")
-    button_other = _find_wait_exists(device, dump_ui, 'button_other',
+    button_other = _find_wait_exists(device, 'button_other',
                                      resourceId='com.instagram.android:id/action_sheet_row_text_view',
                                      className='android.widget.Button',
                                      text='Other…')
@@ -310,7 +301,7 @@ def select_image(device, dump_ui):
             hamburger_menu.click()
 
             print("Click the Downloads menu item")
-            downloads_menuitem = _find_wait_exists(device, dump_ui, "downloads_menuitem",
+            downloads_menuitem = _find_wait_exists(device, "downloads_menuitem",
                                                    className='android.widget.TextView',
                                                    text='Downloads')
             if downloads_menuitem is None:
@@ -321,12 +312,12 @@ def select_image(device, dump_ui):
     # One way or another, we're in the Downloads folder.
     # We assume there's only one image, or if more, we select the first
     print("Click the image")
-    image_parent = _find_wait_exists(device, dump_ui, 'image',
+    image_parent = _find_wait_exists(device, 'image',
                                      className='android.widget.FrameLayout',
                                      resourceId='com.android.documentsui:id/thumbnail')
 
     if image_parent is None:
-        image_parent = _find_wait_exists(device, dump_ui, 'image',
+        image_parent = _find_wait_exists(device, 'image',
                                          className='android.widget.FrameLayout',
                                          resourceId='com.google.android.documentsui:id/thumbnail')
 
@@ -341,9 +332,9 @@ def select_image(device, dump_ui):
     return True
 
 
-def accept_image(device, dump_ui):
+def accept_image(device):
     print("Click blue arrow to skip cropping")
-    blue_arrow = _find_wait_exists(device, dump_ui, 'blue_arrow',
+    blue_arrow = _find_wait_exists(device, 'blue_arrow',
                                    className='android.widget.ImageView',
                                    resourceId='com.instagram.android:id/save')
     if blue_arrow is None:
@@ -354,7 +345,7 @@ def accept_image(device, dump_ui):
               'android.view.View', 'filter_view')
 
     print("Click blue arrow to skip filters")
-    blue_arrow2 = _find_wait_exists(device, dump_ui, 'blue_arrow2',
+    blue_arrow2 = _find_wait_exists(device, 'blue_arrow2',
                                     className='android.widget.ImageView',
                                     resourceId='com.instagram.android:id/next_button_imageview')
     if blue_arrow2 is None:
@@ -364,10 +355,10 @@ def accept_image(device, dump_ui):
     return True
 
 
-def add_caption(device, caption, dump_ui):
+def add_caption(device, caption):
     if len(caption) > 0:
         print("Typing in the caption")
-        caption_editbox = _find_wait_exists(device, dump_ui, "caption_editbox",
+        caption_editbox = _find_wait_exists(device, "caption_editbox",
                                             className='android.widget.EditText',
                                             resourceId='com.instagram.android:id/caption_text_view')
         if caption_editbox is None:
@@ -394,7 +385,7 @@ def add_caption(device, caption, dump_ui):
     return True
 
 
-def add_tags(device, tagnames, dump_ui):
+def add_tags(device, tagnames):
     print("Adding tagnames:")
     print(tagnames)
 
@@ -411,7 +402,7 @@ def add_tags(device, tagnames, dump_ui):
         time.sleep(2)
 
         print(f"Tagging {tagnames[0]} in post: click \"Tag People\" button")
-        tag_tagnames_button = _find_wait_exists(device, dump_ui, "tag_tagnames_button",
+        tag_tagnames_button = _find_wait_exists(device, "tag_tagnames_button",
                                                 className='android.widget.TextView',
                                                 text='Tag People')
         if tag_tagnames_button is None:
@@ -424,7 +415,7 @@ def add_tags(device, tagnames, dump_ui):
 
         # we have to click somewhere within the image
         print("Click in image to set user tag")
-        taggable_image = _find_wait_exists(device, dump_ui, 'taggable_image',
+        taggable_image = _find_wait_exists(device, 'taggable_image',
                                            className='android.widget.ImageView',
                                            resourceId='com.instagram.android:id/tag_image_view')
         if taggable_image is None:
@@ -436,7 +427,7 @@ def add_tags(device, tagnames, dump_ui):
 
         # -----
         print(f"Type username '{tagnames[0]}' into user_searchbox")
-        user_searchbox = _find_wait_exists(device, dump_ui, 'user_searchbox',
+        user_searchbox = _find_wait_exists(device, 'user_searchbox',
                                            className='android.widget.EditText',
                                            resourceId='com.instagram.android:id/row_search_edit_text')
         if user_searchbox is None:
@@ -450,7 +441,7 @@ def add_tags(device, tagnames, dump_ui):
 
         # -----
         print("Selecting the user")
-        selected_user_button = _find_wait_exists(device, dump_ui, 'selected_user_button',
+        selected_user_button = _find_wait_exists(device, 'selected_user_button',
                                                  resourceId='com.instagram.android:id/row_search_user_username',
                                                  className='android.widget.TextView',
                                                  text=tagnames[0])
@@ -458,7 +449,7 @@ def add_tags(device, tagnames, dump_ui):
         if selected_user_button is None:
             print(
                 f"No selected_user_button for '{tagnames[0]}' yet - will wait one more time for it")
-            selected_user_button = _find_wait_exists(device, dump_ui, 'selected_user_button',
+            selected_user_button = _find_wait_exists(device, 'selected_user_button',
                                                      resourceId='com.instagram.android:id/row_search_user_username',
                                                      className='android.widget.TextView',
                                                      text=tagnames[0])
@@ -480,7 +471,7 @@ def add_tags(device, tagnames, dump_ui):
                                                   resourceId='com.instagram.android:id/action_bar_button_done')
 
         if blue_arrow3 is None:
-            blue_arrow3 = _find_wait_exists(device, dump_ui, 'blue_arrow3.3',
+            blue_arrow3 = _find_wait_exists(device, 'blue_arrow3.3',
                                             className='android.widget.ImageView',
                                             resourceId='com.instagram.android:id/next_button_imageview',
                                             description='Next'
@@ -494,14 +485,14 @@ def add_tags(device, tagnames, dump_ui):
         return True
 
 
-def add_location(device, location, dump_ui):
+def add_location(device, location):
     if len(location) == 0:
         print("No location to add to post")
 
     if len(location) > 0:
         # -----
         print(f"Adding location to post: {location}")
-        add_location_button = _find_wait_exists(device, dump_ui, 'add_location_button',
+        add_location_button = _find_wait_exists(device, 'add_location_button',
                                                 className='android.widget.TextView',
                                                 resourceId='com.instagram.android:id/location_label')
         if add_location_button is None:
@@ -510,7 +501,7 @@ def add_location(device, location, dump_ui):
 
         # -----
         print("Fill in location search box")
-        location_sbox = _find_wait_exists(device, dump_ui, 'location_sbox',
+        location_sbox = _find_wait_exists(device, 'location_sbox',
                                           className='android.widget.EditText',
                                           resourceId='com.instagram.android:id/row_search_edit_text')
         if location_sbox is None:
@@ -524,7 +515,7 @@ def add_location(device, location, dump_ui):
 
         # -----
         print("Click the selected location button")
-        selected_loc = _find_wait_exists(device, dump_ui, 'selected_loc',
+        selected_loc = _find_wait_exists(device, 'selected_loc',
                                          resourceId='com.instagram.android:id/row_venue_title',
                                          className='android.widget.TextView',
                                          text=location)
@@ -535,9 +526,9 @@ def add_location(device, location, dump_ui):
     return True
 
 
-def do_post(device, dump_ui):
+def do_post(device):
     _printok("Send post and wait for result")
-    blue_tick = _find_wait_exists(device, dump_ui, 'blue_tick',
+    blue_tick = _find_wait_exists(device, 'blue_tick',
                                   className='android.widget.ImageView',
                                   resourceId='com.instagram.android:id/next_button_imageview')
     if blue_tick is None:
@@ -555,7 +546,7 @@ def do_post(device, dump_ui):
     return True
 
 
-def check_posted(device, session_state, dump_ui):
+def check_posted(device, session_state):
     posts_count_before = session_state.my_posts_count
 
     # This updates the data in the session. When post() returns, the database is
@@ -568,23 +559,15 @@ def check_posted(device, session_state, dump_ui):
 
     posts_count_after = session_state.my_posts_count
 
-    logdir = _get_logs_dir_name()
-    prefix_with_ts = _get_log_file_prefix()
-
     if posts_count_after > posts_count_before:
         _printok("SUCCESS!")
-        if dump_ui is True:
-            _dump_ui(device, f'{prefix_with_ts}-final-success', logdir)
         return True
     else:
-        _printfail(
-            "FAIL: posts count did not increase")
-        if dump_ui is True:
-            _dump_ui(device, f'{prefix_with_ts}-final-fail', logdir)
+        _printfail("FAIL: posts count did not increase")
         return False
 
 
-# def check_posted(device, session_state, dump_ui):
+# def check_posted(device, session_state):
 #     # print("Scroll up...")
 #     # # Remember: to scroll up we need to swipe down :)
 #     # for _ in range(3):
@@ -594,7 +577,7 @@ def check_posted(device, session_state, dump_ui):
 #     # -----
 #     # check the outcome - if we get a post with these characteristics, Instagram has accepted the post
 #     caption_regex = f'^{session_state.my_username}'
-#     # posted_caption = _find_wait_exists(device, dump_ui, 'posted_caption',
+#     # posted_caption = _find_wait_exists(device, 'posted_caption',
 #     #                                    resourceId='com.instagram.android:id/row_feed_comment_textview_layout',
 #     #                                    className='com.instagram.ui.widget.textview.IgTextLayoutView',
 #     #                                    textMatches=caption_regex)
@@ -633,20 +616,20 @@ def check_posted(device, session_state, dump_ui):
 #     time.sleep(10)
 
 
-def post(device, on_action, storage, session_state, action_status, is_limit_reached, caption, tagnames, location, dump_ui, image_path_on_device):
+def post(device, on_action, storage, session_state, action_status, is_limit_reached, caption, tagnames, location, image_path_on_device):
 
     # This function will have influence on click, long_click, drag_to, get_text, set_text, clear_text, etc.
     device.deviceV2.implicitly_wait(10)
 
     _pause("Going to start post")
 
-    if start_post(device, dump_ui) is False:
+    if start_post(device) is False:
         return False
 
-    if select_image(device, dump_ui) is False:
+    if select_image(device) is False:
         return False
 
-    if accept_image(device, dump_ui) is False:
+    if accept_image(device) is False:
         return False
 
     #
@@ -656,19 +639,19 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
     _wait_for('default locations to populate', device, 'com.instagram.android',
               'android.widget.LinearLayout', 'suggested_locations_container')
 
-    if add_caption(device, caption, dump_ui) is False:
+    if add_caption(device, caption) is False:
         return False
 
-    if add_tags(device, tagnames, dump_ui) is False:
+    if add_tags(device, tagnames) is False:
         return False
 
-    if add_location(device, location, dump_ui) is False:
+    if add_location(device, location) is False:
         return False
 
-    if do_post(device, dump_ui) is False:
+    if do_post(device) is False:
         return False
 
-    return check_posted(device, session_state, dump_ui)
+    return check_posted(device, session_state)
 
 
 # Note: uiautomator2 (accessible via device_wrapper.device.deviceV2) works by installing
