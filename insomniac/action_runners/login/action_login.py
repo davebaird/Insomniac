@@ -157,7 +157,7 @@ def _maybe_find_wait_exists(device, *, label='it', reps=WAIT_EXISTS, **kwargs):
     return
 
 
-def _got_login_landing_page(device):
+def got_login_landing_page(device):
     _printreport("Waiting for IG landing page")
 
     # no username remembered
@@ -242,7 +242,7 @@ def login(device, on_action, storage, session_state, action_status, is_limit_rea
 
     _pause("Check for login screen details")
 
-    if _got_login_landing_page(device) is False:
+    if got_login_landing_page(device) is False:
         _printfail("Never saw landing page - checking if already logged in")
         return _check_logged_in(device, storage, login)
 
