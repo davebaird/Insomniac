@@ -157,17 +157,22 @@ def _maybe_find_wait_exists(device, *, label='it', reps=WAIT_EXISTS, **kwargs):
     return
 
 
-def got_login_landing_page(device):
+def got_login_landing_page(device, quick=False):
     _printreport("Waiting for IG landing page")
 
+    if quick is True:
+        reps = 1
+    else:
+        reps = WAIT_FOR_LANDING_PAGE
+
     # no username remembered
-    landing_page_logo_1 = _maybe_find_wait_exists(device, label='landing_page_logo_1', reps=WAIT_FOR_LANDING_PAGE,
+    landing_page_logo_1 = _maybe_find_wait_exists(device, label='landing_page_logo_1', reps=reps,
                                                   resourceId='com.instagram.android:id/logo')
     if landing_page_logo_1 is not None:
         return True
 
     # username remembered
-    landing_page_logo_2 = _maybe_find_wait_exists(device, label='landing_page_logo_2', reps=WAIT_FOR_LANDING_PAGE,
+    landing_page_logo_2 = _maybe_find_wait_exists(device, label='landing_page_logo_2', reps=reps,
                                                   resourceId='com.instagram.android:id/login_landing_logo')
     if landing_page_logo_2 is not None:
         return True

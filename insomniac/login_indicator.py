@@ -8,9 +8,9 @@ class LoginError(Exception):
 
 class LoginIndicator:
 
-    def detect_login_page(self, device):
+    def detect_login_page(self, device, quick=False):
 
-        if got_login_landing_page(device) is True:
+        if got_login_landing_page(device, quick=quick) is True:
             raise LoginError("Login required!")
         return False
 
