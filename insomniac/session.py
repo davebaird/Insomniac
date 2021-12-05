@@ -9,6 +9,7 @@ from insomniac.action_get_my_profile_info import get_my_profile_info
 from insomniac.action_runners.actions_runners_manager import CoreActionRunnersManager
 from insomniac.device import DeviceWrapper
 from insomniac.hardban_indicator import HardBanError, hardban_indicator
+from insomniac.login_indicator import LoginError, login_indicator
 from insomniac.limits import LimitsManager
 from insomniac.migration import migrate_from_json_to_sql, migrate_from_sql_to_peewee
 from insomniac.navigation import close_instagram_and_system_dialogs
@@ -261,6 +262,8 @@ class InsomniacSession(Session):
         if open_instagram(device_wrapper.device_id, device_wrapper.app_id):
             # IG was just opened, check that we are not hard banned
             hardban_indicator.detect_webview(device)
+            # check for login page
+            login_indicator.detect_login_page(device)
         if save_profile_info:
             self.session_state.my_username, \
                 self.session_state.my_followers_count, \
