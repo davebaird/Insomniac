@@ -263,7 +263,8 @@ class InsomniacSession(Session):
             # IG was just opened, check that we are not hard banned
             hardban_indicator.detect_webview(device)
             # check for login page
-            login_indicator.detect_login_page(device, quick=True)
+            if args.login is None:
+                login_indicator.detect_login_page(device, quick=True)
         if save_profile_info:
             self.session_state.my_username, \
                 self.session_state.my_followers_count, \
