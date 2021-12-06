@@ -39,7 +39,6 @@ class PostActionRunner(CoreActionsRunner):
                 raise FileNotFoundError(
                     "POSTING: file '" + args.post + "' not found on host")
         else:
-            print("POSTING: no host file specified")
             return False
 
     def reset_params(self):
