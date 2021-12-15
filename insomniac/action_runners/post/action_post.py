@@ -651,6 +651,8 @@ def post(device, on_action, storage, session_state, action_status, is_limit_reac
     if do_post(device) is False:
         return False
 
+    _printokblue("Add a check for the 'rate Instagram' popup that is sometimes presented here")
+
     return check_posted(device, session_state)
 
 

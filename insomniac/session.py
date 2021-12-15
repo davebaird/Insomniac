@@ -308,6 +308,7 @@ class InsomniacSession(Session):
             action_runner = self.actions_mgr.select_action_runner(args)
 
             if action_runner is None:
+                self.session_state.exit_code = 1
                 return
 
             action_runner.reset_params()
@@ -350,6 +351,9 @@ class InsomniacSession(Session):
                 if self.next_config_file is None:
                     self.end_session(device_wrapper)
                     return
+            except LoginRequiredError as ex:
+                print(COLOR_FAIL + describe_exception(ex) + COLOR_ENDC)
+                self.session_state.exit_code = 21
             except Exception as ex:
                 if __version__.__debug_mode__:
                     raise ex

@@ -32,6 +32,10 @@ def run(activation_code="", starter_conf_file_path=None):
 
     insomniac_session.run()
 
+    if insomniac_session.session_state is None:
+        print(COLOR_BOLD + "No session_state created - probably missing args?" + COLOR_ENDC)
+        return 1
+
     return insomniac_session.session_state.exit_code
 
 
