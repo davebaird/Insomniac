@@ -563,7 +563,9 @@ def check_posted(device, session_state):
         _printok("SUCCESS!")
         return True
     else:
+        # this is sometimes wrong - the post succeeded, but the count doesn't increment
         _printfail("FAIL: posts count did not increase")
+        session_state.exit_code = 12
         return False
 
 
