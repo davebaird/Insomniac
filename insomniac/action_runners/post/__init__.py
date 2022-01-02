@@ -88,7 +88,8 @@ class PostActionRunner(CoreActionsRunner):
                 print(COLOR_REPORT + "Posted image to " + session_state.my_username + COLOR_ENDC)
                 storage.log_post()
             else:
-                session_state.exit_code = 1
+                if session_state.exit_code is None:
+                    session_state.exit_code = 1
                 print(COLOR_REPORT + "Did not post image" + COLOR_ENDC)
 
             self.action_status.set(ActionState.DONE)
